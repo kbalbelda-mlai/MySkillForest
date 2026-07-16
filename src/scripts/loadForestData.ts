@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import forestPatchCsv from "../data/Forest_Patch.csv?raw";
+import treesCsv from "../data/Trees.csv?raw";
 
 export interface ForestPatchRecord {
   Patch_ID: string;
@@ -13,6 +14,41 @@ export interface ForestPatchRecord {
   Patch_Description: string;
   Date_Created: string;
   Last_Updated: string;
+}
+
+export interface TreeRecord {
+  Tree_ID: string;
+  Patch_ID: string;
+  Tree_Name: string;
+  Tree_Description: string;
+  Date_Planted: string;
+  Date_Sprouted: string;
+  Growth_Stage: "SAPLING" | "TREE";
+  Display_Slot: number;
+  Evidence_Path: string;
+}
+
+export function loadTrees(): TreeRecord[] {
+  const parsed = Papa.parse<Record<string, string>>(treesCsv, {
+    header: true,
+    skipEmptyLines: true,
+  });
+
+  if (parsed.errors.length > 0) {
+    console.error("Trees.csv parsing errors:", parsed.errors);
+  }
+
+  return parsed.data.map((row) => ({
+    Tree_ID: row.Tree_ID,
+    Patch_ID: row.Patch_ID,
+    Tree_Name: row.Tree_Name,
+    Tree_Description: row.Tree_Description,
+    Date_Planted: row.Date_Planted,
+    Date_Sprouted: row.Date_Sprouted,
+    Growth_Stage: row.Growth_Stage as "SAPLING" | "TREE",
+    Display_Slot: Number(row.Display_Slot),
+    Evidence_Path: row.Evidence_Path,
+  }));
 }
 
 export function loadForestPatches(): ForestPatchRecord[] {

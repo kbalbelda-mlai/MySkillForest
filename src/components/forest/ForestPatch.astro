@@ -1,0 +1,122 @@
+---
+import SkillTree from "./SkillTree.astro";
+import type { TreeRecord } from "../../scripts/loadForestData";
+
+interface Props {
+  patchName: string;
+  patchStyle: string;
+  x: number;
+  y: number;
+  trees?: TreeRecord[];
+  scale?: number;
+  showLabel?: boolean;
+}
+
+const {
+  patchName,
+  patchStyle,
+  x,
+  y,
+  trees = [],
+  scale = 0.40,
+  showLabel = true,
+} = Astro.props;
+
+const normalizedStyle = patchStyle.padStart(2, "0");
+const groundPath = `/assets/grounds/Ground_${normalizedStyle}.png`;
+
+const nativePatchSize = 945;
+const displaySize = nativePatchSize * scale;
+---
+
+<div
+  class="forest-patch"
+  style={`
+    left: ${x}px;
+    top: ${y}px;
+    width: ${displaySize}px;
+    height: ${displaySize}px;
+  `}
+>
+  <img
+    src={groundPath}
+    alt={patchName}
+    class="ground-patch"
+    draggable="false"
+  />
+
+  {
+    trees.map((tree) => (
+      <SkillTree
+        treeName={tree.Tree_Name}
+        patchStyle={patchStyle}
+        growthStage={tree.Growth_Stage}
+        displaySlot={tree.Display_Slot}
+        patchScale={scale}
+      />
+    ))
+  }
+
+  {
+    showLabel && (
+      <div class="patch-label">
+        {patchName}
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .forest-patch {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    user-select: none;
+  }
+
+  .ground-patch {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  .patch-label {
+    position: absolute;
+    left: 50%;
+    top: 8%;
+    z-index: 1000;
+    
+    transform: translate(-50%, 6px);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.88);
+    font-weight: 700;
+    white-space: nowrap;
+    pointer-events: none;
+
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease,
+      visibility 180ms ease;
+  }
+
+  .forest-patch:hover .patch-label {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+  }
+
+  .ground-patch {
+    transition:
+      transform 180ms ease,
+      filter 180ms ease;
+  }
+
+  .forest-patch:hover .ground-patch {
+    transform: scale(1.02);
+    filter: brightness(1.06);
+  }
+</style>

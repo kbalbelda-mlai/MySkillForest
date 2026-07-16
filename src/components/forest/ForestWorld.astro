@@ -1,0 +1,286 @@
+---
+import ForestPatch from "./ForestPatch.astro";
+import {
+  loadForestPatches,
+  loadTrees,
+} from "../../scripts/loadForestData";
+import worldSettings from "../../data/world_settings.json";
+
+const forestPatches = loadForestPatches();
+const trees = loadTrees();
+
+const treesByPatch = new Map<string, typeof trees>();
+
+for (const tree of trees) {
+  const list = treesByPatch.get(tree.Patch_ID) ?? [];
+  list.push(tree);
+  treesByPatch.set(tree.Patch_ID, list);
+}
+
+const patchScale = worldSettings.patch.scale;
+const horizontalSpacing = worldSettings.patch.horizontal_spacing;
+const verticalSpacing = worldSettings.patch.vertical_spacing;
+const paddingLeft = worldSettings.camera.padding_left;
+const paddingRight = worldSettings.camera.padding_right;
+const paddingTop = worldSettings.camera.padding_top;
+const paddingBottom = worldSettings.camera.padding_bottom;
+
+const nativePatchSize = 945;
+const displayedPatchSize = nativePatchSize * patchScale;
+const patchHalfSize = displayedPatchSize / 2;
+
+function hexToWorld(q: number, r: number) {
+  return {
+    x: q * horizontalSpacing + r * (horizontalSpacing / 2),
+    y: r * verticalSpacing,
+  };
+}
+
+const positionedPatches = forestPatches
+  .map((patch) => {
+    const position = hexToWorld(patch.Hex_Q, patch.Hex_R);
+
+    return {
+      ...patch,
+      x: position.x,
+      y: position.y,
+    };
+  })
+  .sort((a, b) => {
+    if (a.y !== b.y) return a.y - b.y;
+    return a.x - b.x;
+  });
+
+const worldMinX =
+  Math.min(...positionedPatches.map((patch) => patch.x)) - patchHalfSize;
+
+const worldMaxX =
+  Math.max(...positionedPatches.map((patch) => patch.x)) + patchHalfSize;
+
+const worldMinY =
+  Math.min(...positionedPatches.map((patch) => patch.y)) - patchHalfSize;
+
+const worldMaxY =
+  Math.max(...positionedPatches.map((patch) => patch.y)) + patchHalfSize;
+---
+
+<div
+  class="forest-stage"
+  data-min-x={worldMinX}
+  data-max-x={worldMaxX}
+  data-min-y={worldMinY}
+  data-max-y={worldMaxY}
+  data-padding-left={paddingLeft}
+  data-padding-right={paddingRight}
+  data-padding-top={paddingTop}
+  data-padding-bottom={paddingBottom}
+>
+  <div class="forest-pan-layer">
+    <div class="forest-world">
+      {
+        positionedPatches.map((patch) => (
+          <ForestPatch
+            patchName={patch.Patch_Name}
+            patchStyle={patch.Patch_Style}
+            x={patch.x}
+            y={patch.y}
+            trees={treesByPatch.get(patch.Patch_ID) ?? []}
+            scale={patchScale}
+            showLabel={true}
+          />
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<script>
+  const stage = document.querySelector<HTMLElement>(".forest-stage");
+  const panLayer =
+    document.querySelector<HTMLElement>(".forest-pan-layer");
+
+  if (!stage || !panLayer) {
+    throw new Error("Forest panning elements were not found.");
+  }
+
+  const worldMinX = Number(stage.dataset.minX);
+  const worldMaxX = Number(stage.dataset.maxX);
+  const worldMinY = Number(stage.dataset.minY);
+  const worldMaxY = Number(stage.dataset.maxY);
+  const paddingLeft = Number(stage.dataset.paddingLeft);
+  const paddingRight = Number(stage.dataset.paddingRight);
+  const paddingTop = Number(stage.dataset.paddingTop);
+  const paddingBottom = Number(stage.dataset.paddingBottom);
+
+  let cameraX = 0;
+  let cameraY = 0;
+
+  let isDragging = false;
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+  let cameraStartX = 0;
+  let cameraStartY = 0;
+
+  function clamp(value: number, minimum: number, maximum: number) {
+    return Math.min(Math.max(value, minimum), maximum);
+  }
+
+  function getCameraBounds() {
+    const viewportWidth = stage.clientWidth;
+    const viewportHeight = stage.clientHeight;
+
+    const centerX = viewportWidth / 2;
+    const centerY = viewportHeight / 2;
+
+    let minimumCameraX =
+      viewportWidth -
+      paddingRight -
+      centerX -
+      worldMaxX;
+
+    let maximumCameraX =
+      paddingLeft -
+      centerX -
+      worldMinX;
+
+    let minimumCameraY =
+      viewportHeight -
+      paddingBottom -
+      centerY -
+      worldMaxY;
+
+    let maximumCameraY =
+      paddingTop -
+      centerY -
+      worldMinY;
+
+    /*
+      If the forest is smaller than the available viewport,
+      keep it centered along that axis.
+    */
+    if (minimumCameraX > maximumCameraX) {
+      minimumCameraX = 0;
+      maximumCameraX = 0;
+    }
+
+    if (minimumCameraY > maximumCameraY) {
+      minimumCameraY = 0;
+      maximumCameraY = 0;
+    }
+
+    return {
+      minimumCameraX,
+      maximumCameraX,
+      minimumCameraY,
+      maximumCameraY,
+    };
+  }
+
+  function constrainCamera() {
+    const bounds = getCameraBounds();
+
+    cameraX = clamp(
+      cameraX,
+      bounds.minimumCameraX,
+      bounds.maximumCameraX,
+    );
+
+    cameraY = clamp(
+      cameraY,
+      bounds.minimumCameraY,
+      bounds.maximumCameraY,
+    );
+  }
+
+  function updateCamera() {
+    constrainCamera();
+
+    panLayer.style.transform =
+      `translate3d(${cameraX}px, ${cameraY}px, 0)`;
+  }
+
+  stage.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+
+    isDragging = true;
+
+    pointerStartX = event.clientX;
+    pointerStartY = event.clientY;
+
+    cameraStartX = cameraX;
+    cameraStartY = cameraY;
+
+    stage.setPointerCapture(event.pointerId);
+    stage.classList.add("is-dragging");
+  });
+
+  stage.addEventListener("pointermove", (event) => {
+    if (!isDragging) return;
+
+    cameraX =
+      cameraStartX + (event.clientX - pointerStartX);
+
+    cameraY =
+      cameraStartY + (event.clientY - pointerStartY);
+
+    updateCamera();
+  });
+
+  function stopDragging(event: PointerEvent) {
+    if (!isDragging) return;
+
+    isDragging = false;
+    stage.classList.remove("is-dragging");
+
+    if (stage.hasPointerCapture(event.pointerId)) {
+      stage.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  stage.addEventListener("pointerup", stopDragging);
+  stage.addEventListener("pointercancel", stopDragging);
+
+  window.addEventListener("resize", updateCamera);
+
+  updateCamera();
+</script>
+
+<style>
+  .forest-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    cursor: -webkit-grab;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .forest-stage.is-dragging {
+    cursor: -webkit-grabbing;
+    cursor: grabbing;
+  }
+
+  .forest-pan-layer {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+  }
+
+  .forest-world {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .forest-stage :global(img) {
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+</style>

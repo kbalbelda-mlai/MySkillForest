@@ -1,5 +1,6 @@
 ---
 import { loadForestPatches } from "../scripts/loadForestData";
+import ForestWorld from "../components/forest/ForestWorld.astro";
 
 const pageTitle = "My Skill Forest";
 const forestPatches = loadForestPatches();
@@ -32,15 +33,9 @@ console.log(forestPatches);
 
     <main class="forest-viewport">
       <div class="forest-world">
-        <div class="debug-list">
-			<h2>Loaded Forest Patches</h2>
+        
+		<ForestWorld />
 
-			{forestPatches.map((patch) => (
-				<p>
-					{patch.Patch_Order}. {patch.Patch_Name} — Style {patch.Patch_Style}
-				</p>
-			))}
-		</div>
       </div>
     </main>
   </body>
@@ -112,16 +107,4 @@ console.log(forestPatches);
     background: #b8dce8;
   }
 
-  .forest-world {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-  }
-  
-  .debug-list {
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  }
 </style>
