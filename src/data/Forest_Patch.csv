@@ -1,1 +1,8 @@
-﻿Patch_ID,Patch_Name,Patch_Style,Patch_Order,Hex_Q,Hex_R,Sapling_Planted,Trees_Grown,Patch_Description,Date_Created,Last_Updated
+﻿Patch_ID,Patch_Name,Patch_Style,Patch_Order,Hex_Q,Hex_R,Saplings_Planted,Trees_Grown,Patch_Description,Date_Created,Last_Updated
+P001,Machine Learning,01,1,0,0,2,3,Learning AI fundamentals,2026-07-16,2026-07-16
+P002,Data Engineering,02,2,0,-1,1,4,Building data pipelines,2026-07-16,2026-07-16
+P003,Computer Vision,03,3,1,-1,3,2,Vision algorithms,2026-07-16,2026-07-16
+P004,MLOps,04,4,1,0,2,2,Deployment and monitoring,2026-07-16,2026-07-16
+P005,Statistics,05,5,0,1,4,1,Probability and inference,2026-07-16,2026-07-16
+P006,Deep Learning,06,6,-1,1,3,3,Neural networks,2026-07-16,2026-07-16
+P007,SQL,07,7,-1,0,2,3,Database systems,2026-07-16,2026-07-16

@@ -1,17 +1,127 @@
 ---
+import { loadForestPatches } from "../scripts/loadForestData";
 
+const pageTitle = "My Skill Forest";
+const forestPatches = loadForestPatches();
+
+console.log(forestPatches);
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{pageTitle}</title>
+  </head>
+
+  <body>
+    <header class="header-ribbon">
+      <div class="mode-button">Strolling Mode</div>
+
+      <nav class="main-nav">
+        <button type="button">Home</button>
+        <button type="button">Tree Search</button>
+      </nav>
+
+      <div class="forest-stats">
+        <span>Patches: 7</span>
+        <span>Saplings: 0</span>
+        <span>Trees: 0</span>
+      </div>
+    </header>
+
+    <main class="forest-viewport">
+      <div class="forest-world">
+        <div class="debug-list">
+			<h2>Loaded Forest Patches</h2>
+
+			{forestPatches.map((patch) => (
+				<p>
+					{patch.Patch_Order}. {patch.Patch_Name} — Style {patch.Patch_Style}
+				</p>
+			))}
+		</div>
+      </div>
+    </main>
+  </body>
 </html>
+
+<style>
+  :global(*) {
+    box-sizing: border-box;
+  }
+
+  :global(html),
+  :global(body) {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    background: #b8dce8;
+  }
+
+  .header-ribbon {
+    height: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 20px;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+    z-index: 100;
+  }
+
+  .mode-button {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #dcefdc;
+    font-weight: 700;
+  }
+
+  .main-nav {
+    display: flex;
+    gap: 10px;
+  }
+
+  .main-nav button {
+    border: 0;
+    background: transparent;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+
+  .forest-stats {
+    margin-left: auto;
+    display: flex;
+    gap: 18px;
+    font-size: 14px;
+  }
+
+  .forest-viewport {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: #b8dce8;
+  }
+
+  .forest-world {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+  
+  .debug-list {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  }
+</style>
