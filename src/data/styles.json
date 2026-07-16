@@ -1,0 +1,32 @@
+{
+    "schema_version": "1.0",
+    "styles": {
+        "01": {
+            "name": "Classic Greens"
+        },
+        "02": {
+            "name": "Autumn Walk"
+        },
+        "03": {
+            "name": "Frosty Forest"
+        },
+        "04": {
+            "name": "Fruit Foliage"
+        },
+        "05": {
+            "name": "Mystical Tangle"
+        },
+        "06": {
+            "name": "Wicked Woods"
+        },
+        "07": {
+            "name": "Sakura Season"
+        },
+        "08": {
+            "name": "Bamboo Thicket"
+        },
+        "09": {
+            "name": "Industrial Zone"
+        }
+    }
+}

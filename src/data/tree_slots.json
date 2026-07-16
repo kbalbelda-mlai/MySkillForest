@@ -1,0 +1,162 @@
+[
+  {
+    "Display_Slot": 1,
+    "X_Pixel": 477,
+    "Y_Pixel": 314,
+    "X_Normalized": 0.505297,
+    "Y_Normalized": 0.332275,
+    "Render_Order": 1
+  },
+  {
+    "Display_Slot": 3,
+    "X_Pixel": 585,
+    "Y_Pixel": 334,
+    "X_Normalized": 0.619703,
+    "Y_Normalized": 0.353439,
+    "Render_Order": 2
+  },
+  {
+    "Display_Slot": 5,
+    "X_Pixel": 699,
+    "Y_Pixel": 404,
+    "X_Normalized": 0.740466,
+    "Y_Normalized": 0.427513,
+    "Render_Order": 3
+  },
+  {
+    "Display_Slot": 13,
+    "X_Pixel": 849,
+    "Y_Pixel": 483,
+    "X_Normalized": 0.899364,
+    "Y_Normalized": 0.511111,
+    "Render_Order": 4
+  },
+  {
+    "Display_Slot": 9,
+    "X_Pixel": 430,
+    "Y_Pixel": 369,
+    "X_Normalized": 0.455508,
+    "Y_Normalized": 0.390476,
+    "Render_Order": 5
+  },
+  {
+    "Display_Slot": 2,
+    "X_Pixel": 540,
+    "Y_Pixel": 408,
+    "X_Normalized": 0.572034,
+    "Y_Normalized": 0.431746,
+    "Render_Order": 6
+  },
+  {
+    "Display_Slot": 15,
+    "X_Pixel": 658,
+    "Y_Pixel": 483,
+    "X_Normalized": 0.697034,
+    "Y_Normalized": 0.511111,
+    "Render_Order": 7
+  },
+  {
+    "Display_Slot": 18,
+    "X_Pixel": 769,
+    "Y_Pixel": 552,
+    "X_Normalized": 0.814619,
+    "Y_Normalized": 0.584127,
+    "Render_Order": 8
+  },
+  {
+    "Display_Slot": 6,
+    "X_Pixel": 303,
+    "Y_Pixel": 404,
+    "X_Normalized": 0.320975,
+    "Y_Normalized": 0.427513,
+    "Render_Order": 9
+  },
+  {
+    "Display_Slot": 17,
+    "X_Pixel": 380,
+    "Y_Pixel": 458,
+    "X_Normalized": 0.402542,
+    "Y_Normalized": 0.484656,
+    "Render_Order": 10
+  },
+  {
+    "Display_Slot": 8,
+    "X_Pixel": 518,
+    "Y_Pixel": 510,
+    "X_Normalized": 0.548729,
+    "Y_Normalized": 0.539683,
+    "Render_Order": 11
+  },
+  {
+    "Display_Slot": 12,
+    "X_Pixel": 649,
+    "Y_Pixel": 581,
+    "X_Normalized": 0.6875,
+    "Y_Normalized": 0.614815,
+    "Render_Order": 12
+  },
+  {
+    "Display_Slot": 4,
+    "X_Pixel": 201,
+    "Y_Pixel": 458,
+    "X_Normalized": 0.212924,
+    "Y_Normalized": 0.484656,
+    "Render_Order": 13
+  },
+  {
+    "Display_Slot": 11,
+    "X_Pixel": 297,
+    "Y_Pixel": 524,
+    "X_Normalized": 0.314619,
+    "Y_Normalized": 0.554497,
+    "Render_Order": 14
+  },
+  {
+    "Display_Slot": 19,
+    "X_Pixel": 442,
+    "Y_Pixel": 600,
+    "X_Normalized": 0.46822,
+    "Y_Normalized": 0.634921,
+    "Render_Order": 15
+  },
+  {
+    "Display_Slot": 16,
+    "X_Pixel": 595,
+    "Y_Pixel": 668,
+    "X_Normalized": 0.630297,
+    "Y_Normalized": 0.706878,
+    "Render_Order": 16
+  },
+  {
+    "Display_Slot": 10,
+    "X_Pixel": 81,
+    "Y_Pixel": 510,
+    "X_Normalized": 0.085805,
+    "Y_Normalized": 0.539683,
+    "Render_Order": 17
+  },
+  {
+    "Display_Slot": 20,
+    "X_Pixel": 182,
+    "Y_Pixel": 584,
+    "X_Normalized": 0.192797,
+    "Y_Normalized": 0.617989,
+    "Render_Order": 18
+  },
+  {
+    "Display_Slot": 7,
+    "X_Pixel": 312,
+    "Y_Pixel": 643,
+    "X_Normalized": 0.330508,
+    "Y_Normalized": 0.680423,
+    "Render_Order": 19
+  },
+  {
+    "Display_Slot": 14,
+    "X_Pixel": 451,
+    "Y_Pixel": 729,
+    "X_Normalized": 0.477754,
+    "Y_Normalized": 0.771429,
+    "Render_Order": 20
+  }
+]
