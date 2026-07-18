@@ -1,44 +1,104 @@
 ---
 import ForestPatch from "./ForestPatch.astro";
+
 import {
-  loadForestPatches,
-  loadTrees,
+  loadForestData,
 } from "../../scripts/loadForestData";
+
 import worldSettings from "../../data/world_settings.json";
 
-const forestPatches = loadForestPatches();
-const trees = loadTrees();
+/* =========================================================
+   LOAD FOREST DATA
+   ========================================================= */
 
-const treesByPatch = new Map<string, typeof trees>();
+const {
+  patches: forestPatches,
+  trees,
+} = loadForestData();
+
+const hasForestPatches = forestPatches.length > 0;
+
+/* =========================================================
+   GROUP TREES BY PATCH
+   ========================================================= */
+
+const treesByPatch = new Map<
+  string,
+  typeof trees
+>();
 
 for (const tree of trees) {
-  const list = treesByPatch.get(tree.Patch_ID) ?? [];
-  list.push(tree);
-  treesByPatch.set(tree.Patch_ID, list);
+  const existingTrees =
+    treesByPatch.get(tree.Patch_ID) ?? [];
+
+  existingTrees.push(tree);
+
+  treesByPatch.set(
+    tree.Patch_ID,
+    existingTrees,
+  );
 }
 
-const patchScale = worldSettings.patch.scale;
-const horizontalSpacing = worldSettings.patch.horizontal_spacing;
-const verticalSpacing = worldSettings.patch.vertical_spacing;
-const paddingLeft = worldSettings.camera.padding_left;
-const paddingRight = worldSettings.camera.padding_right;
-const paddingTop = worldSettings.camera.padding_top;
-const paddingBottom = worldSettings.camera.padding_bottom;
+/* =========================================================
+   WORLD SETTINGS
+   ========================================================= */
+
+const patchScale =
+  worldSettings.patch.scale;
+
+const horizontalSpacing =
+  worldSettings.patch.horizontal_spacing;
+
+const verticalSpacing =
+  worldSettings.patch.vertical_spacing;
+
+const paddingLeft =
+  worldSettings.camera.padding_left;
+
+const paddingRight =
+  worldSettings.camera.padding_right;
+
+const paddingTop =
+  worldSettings.camera.padding_top;
+
+const paddingBottom =
+  worldSettings.camera.padding_bottom;
+
+const allowPan =
+  worldSettings.camera.allow_pan;
 
 const nativePatchSize = 945;
-const displayedPatchSize = nativePatchSize * patchScale;
-const patchHalfSize = displayedPatchSize / 2;
 
-function hexToWorld(q: number, r: number) {
+const displayedPatchSize =
+  nativePatchSize * patchScale;
+
+const patchHalfSize =
+  displayedPatchSize / 2;
+
+/* =========================================================
+   PATCH POSITIONING
+   ========================================================= */
+
+function hexToWorld(
+  q: number,
+  r: number,
+) {
   return {
-    x: q * horizontalSpacing + r * (horizontalSpacing / 2),
-    y: r * verticalSpacing,
+    x:
+      q * horizontalSpacing +
+      r * (horizontalSpacing / 2),
+
+    y:
+      r * verticalSpacing,
   };
 }
 
 const positionedPatches = forestPatches
   .map((patch) => {
-    const position = hexToWorld(patch.Hex_Q, patch.Hex_R);
+    const position = hexToWorld(
+      patch.Hex_Q,
+      patch.Hex_R,
+    );
 
     return {
       ...patch,
@@ -46,26 +106,75 @@ const positionedPatches = forestPatches
       y: position.y,
     };
   })
-  .sort((a, b) => {
-    if (a.y !== b.y) return a.y - b.y;
-    return a.x - b.x;
+  .sort((firstPatch, secondPatch) => {
+    if (firstPatch.y !== secondPatch.y) {
+      return firstPatch.y - secondPatch.y;
+    }
+
+    return firstPatch.x - secondPatch.x;
   });
 
-const worldMinX =
-  Math.min(...positionedPatches.map((patch) => patch.x)) - patchHalfSize;
+/* =========================================================
+   WORLD BOUNDS
 
-const worldMaxX =
-  Math.max(...positionedPatches.map((patch) => patch.x)) + patchHalfSize;
+   Empty forests use zero-based bounds so Math.min/Math.max
+   never return Infinity or -Infinity.
+   ========================================================= */
 
-const worldMinY =
-  Math.min(...positionedPatches.map((patch) => patch.y)) - patchHalfSize;
+const patchXPositions =
+  positionedPatches.map(
+    (patch) => patch.x,
+  );
 
-const worldMaxY =
-  Math.max(...positionedPatches.map((patch) => patch.y)) + patchHalfSize;
+const patchYPositions =
+  positionedPatches.map(
+    (patch) => patch.y,
+  );
+
+const worldMinX = hasForestPatches
+  ? Math.min(...patchXPositions) -
+    patchHalfSize
+  : 0;
+
+const worldMaxX = hasForestPatches
+  ? Math.max(...patchXPositions) +
+    patchHalfSize
+  : 0;
+
+const worldMinY = hasForestPatches
+  ? Math.min(...patchYPositions) -
+    patchHalfSize
+  : 0;
+
+const worldMaxY = hasForestPatches
+  ? Math.max(...patchYPositions) +
+    patchHalfSize
+  : 0;
+
+console.log("ForestWorld initialized:", {
+  patchCount: forestPatches.length,
+  treeCount: trees.length,
+  hasForestPatches,
+  worldBounds: {
+    worldMinX,
+    worldMaxX,
+    worldMinY,
+    worldMaxY,
+  },
+});
 ---
 
 <div
-  class="forest-stage"
+  class:list={[
+    "forest-stage",
+    {
+      "is-empty": !hasForestPatches,
+      "is-pan-disabled": !allowPan,
+    },
+  ]}
+  data-forest-stage
+  data-has-patches={String(hasForestPatches)}
+  data-allow-pan={String(allowPan)}
   data-min-x={worldMinX}
   data-max-x={worldMaxX}
   data-min-y={worldMinY}
@@ -75,183 +184,397 @@ const worldMaxY =
   data-padding-top={paddingTop}
   data-padding-bottom={paddingBottom}
 >
-  <div class="forest-pan-layer">
-    <div class="forest-world">
-      {
-        positionedPatches.map((patch) => (
-          <ForestPatch
-            patchName={patch.Patch_Name}
-            patchStyle={patch.Patch_Style}
-            x={patch.x}
-            y={patch.y}
-            trees={treesByPatch.get(patch.Patch_ID) ?? []}
-            scale={patchScale}
-            showLabel={true}
-          />
-        ))
-      }
-    </div>
-  </div>
+  {
+    hasForestPatches ? (
+      <div
+        class="forest-pan-layer"
+        data-forest-pan-layer
+      >
+        <div class="forest-world">
+          {
+            positionedPatches.map(
+              (patch) => (
+                <ForestPatch
+                  patchId={patch.Patch_ID}
+                  patchName={patch.Patch_Name}
+                  patchStyle={patch.Patch_Style}
+                  patchDescription={
+                    patch.Patch_Description
+                  }
+                  saplingsPlanted={
+                    patch.Saplings_Planted
+                  }
+                  treesGrown={
+                    patch.Trees_Grown
+                  }
+                  x={patch.x}
+                  y={patch.y}
+                  trees={
+                    treesByPatch.get(
+                      patch.Patch_ID,
+                    ) ?? []
+                  }
+                  scale={patchScale}
+                  showLabel={true}
+                />
+              ),
+            )
+          }
+        </div>
+      </div>
+    ) : (
+      <div
+        class="empty-forest-state"
+        role="status"
+        aria-live="polite"
+      >
+        <p>
+          Time will wait for a Forest to Spring
+        </p>
+      </div>
+    )
+  }
 </div>
 
 <script>
-  const stage = document.querySelector<HTMLElement>(".forest-stage");
+  /* =======================================================
+     FOREST CAMERA
+     ======================================================= */
+
+  const stage =
+    document.querySelector<HTMLElement>(
+      "[data-forest-stage]",
+    );
+
   const panLayer =
-    document.querySelector<HTMLElement>(".forest-pan-layer");
+    document.querySelector<HTMLElement>(
+      "[data-forest-pan-layer]",
+    );
 
-  if (!stage || !panLayer) {
-    throw new Error("Forest panning elements were not found.");
+  if (!stage) {
+    throw new Error(
+      "The forest stage was not found.",
+    );
   }
 
-  const worldMinX = Number(stage.dataset.minX);
-  const worldMaxX = Number(stage.dataset.maxX);
-  const worldMinY = Number(stage.dataset.minY);
-  const worldMaxY = Number(stage.dataset.maxY);
-  const paddingLeft = Number(stage.dataset.paddingLeft);
-  const paddingRight = Number(stage.dataset.paddingRight);
-  const paddingTop = Number(stage.dataset.paddingTop);
-  const paddingBottom = Number(stage.dataset.paddingBottom);
+  const hasPatches =
+    stage.dataset.hasPatches === "true";
 
-  let cameraX = 0;
-  let cameraY = 0;
+  const allowPan =
+    stage.dataset.allowPan === "true";
 
-  let isDragging = false;
-  let pointerStartX = 0;
-  let pointerStartY = 0;
-  let cameraStartX = 0;
-  let cameraStartY = 0;
+  /*
+    An empty forest intentionally has no pan layer.
+    Stop camera setup after registering the Home behavior.
+  */
 
-  function clamp(value: number, minimum: number, maximum: number) {
-    return Math.min(Math.max(value, minimum), maximum);
-  }
+  if (!hasPatches || !panLayer) {
+    window.addEventListener(
+      "forest:recenter",
+      () => {
+        console.log(
+          "Forest recenter requested, but the forest is empty.",
+        );
+      },
+    );
+  } else {
+    const worldMinX =
+      Number(stage.dataset.minX);
 
-  function getCameraBounds() {
-    const viewportWidth = stage.clientWidth;
-    const viewportHeight = stage.clientHeight;
+    const worldMaxX =
+      Number(stage.dataset.maxX);
 
-    const centerX = viewportWidth / 2;
-    const centerY = viewportHeight / 2;
+    const worldMinY =
+      Number(stage.dataset.minY);
 
-    let minimumCameraX =
-      viewportWidth -
-      paddingRight -
-      centerX -
-      worldMaxX;
+    const worldMaxY =
+      Number(stage.dataset.maxY);
 
-    let maximumCameraX =
-      paddingLeft -
-      centerX -
-      worldMinX;
+    const paddingLeft =
+      Number(stage.dataset.paddingLeft);
 
-    let minimumCameraY =
-      viewportHeight -
-      paddingBottom -
-      centerY -
-      worldMaxY;
+    const paddingRight =
+      Number(stage.dataset.paddingRight);
 
-    let maximumCameraY =
-      paddingTop -
-      centerY -
-      worldMinY;
+    const paddingTop =
+      Number(stage.dataset.paddingTop);
+
+    const paddingBottom =
+      Number(stage.dataset.paddingBottom);
+
+    let cameraX = 0;
+    let cameraY = 0;
+
+    let isDragging = false;
+
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+
+    let cameraStartX = 0;
+    let cameraStartY = 0;
+
+    let activePointerId:
+      number | null = null;
+
+    function clamp(
+      value: number,
+      minimum: number,
+      maximum: number,
+    ) {
+      return Math.min(
+        Math.max(value, minimum),
+        maximum,
+      );
+    }
+
+    function getCameraBounds() {
+      const viewportWidth =
+        stage.clientWidth;
+
+      const viewportHeight =
+        stage.clientHeight;
+
+      const centerX =
+        viewportWidth / 2;
+
+      const centerY =
+        viewportHeight / 2;
+
+      let minimumCameraX =
+        viewportWidth -
+        paddingRight -
+        centerX -
+        worldMaxX;
+
+      let maximumCameraX =
+        paddingLeft -
+        centerX -
+        worldMinX;
+
+      let minimumCameraY =
+        viewportHeight -
+        paddingBottom -
+        centerY -
+        worldMaxY;
+
+      let maximumCameraY =
+        paddingTop -
+        centerY -
+        worldMinY;
+
+      /*
+        If the world is smaller than the available viewport,
+        keep it centered along that axis.
+      */
+
+      if (
+        minimumCameraX >
+        maximumCameraX
+      ) {
+        minimumCameraX = 0;
+        maximumCameraX = 0;
+      }
+
+      if (
+        minimumCameraY >
+        maximumCameraY
+      ) {
+        minimumCameraY = 0;
+        maximumCameraY = 0;
+      }
+
+      return {
+        minimumCameraX,
+        maximumCameraX,
+        minimumCameraY,
+        maximumCameraY,
+      };
+    }
+
+    function constrainCamera() {
+      const bounds =
+        getCameraBounds();
+
+      cameraX = clamp(
+        cameraX,
+        bounds.minimumCameraX,
+        bounds.maximumCameraX,
+      );
+
+      cameraY = clamp(
+        cameraY,
+        bounds.minimumCameraY,
+        bounds.maximumCameraY,
+      );
+    }
+
+    function renderCamera() {
+      constrainCamera();
+
+      panLayer.style.transform =
+        `translate3d(${cameraX}px, ${cameraY}px, 0)`;
+    }
+
+    function recenterCamera() {
+      cameraX = 0;
+      cameraY = 0;
+
+      renderCamera();
+
+      console.log(
+        "Forest camera recentered.",
+      );
+    }
+
+    function beginDragging(
+      event: PointerEvent,
+    ) {
+      if (!allowPan) return;
+
+      if (event.button !== 0) {
+        return;
+      }
+
+      const target =
+        event.target as HTMLElement;
+
+      /*
+        Clicking a patch opens its viewer.
+        It must not begin camera dragging.
+      */
+
+      if (
+        target.closest(
+          "[data-patch-viewer-trigger]",
+        )
+      ) {
+        return;
+      }
+
+      isDragging = true;
+      activePointerId = event.pointerId;
+
+      pointerStartX =
+        event.clientX;
+
+      pointerStartY =
+        event.clientY;
+
+      cameraStartX = cameraX;
+      cameraStartY = cameraY;
+
+      stage.setPointerCapture(
+        event.pointerId,
+      );
+
+      stage.classList.add(
+        "is-dragging",
+      );
+    }
+
+    function continueDragging(
+      event: PointerEvent,
+    ) {
+      if (!isDragging) return;
+
+      if (
+        activePointerId !==
+        event.pointerId
+      ) {
+        return;
+      }
+
+      cameraX =
+        cameraStartX +
+        (event.clientX -
+          pointerStartX);
+
+      cameraY =
+        cameraStartY +
+        (event.clientY -
+          pointerStartY);
+
+      renderCamera();
+    }
+
+    function stopDragging(
+      event: PointerEvent,
+    ) {
+      if (!isDragging) return;
+
+      if (
+        activePointerId !==
+        event.pointerId
+      ) {
+        return;
+      }
+
+      isDragging = false;
+      activePointerId = null;
+
+      stage.classList.remove(
+        "is-dragging",
+      );
+
+      if (
+        stage.hasPointerCapture(
+          event.pointerId,
+        )
+      ) {
+        stage.releasePointerCapture(
+          event.pointerId,
+        );
+      }
+    }
+
+    stage.addEventListener(
+      "pointerdown",
+      beginDragging,
+    );
+
+    stage.addEventListener(
+      "pointermove",
+      continueDragging,
+    );
+
+    stage.addEventListener(
+      "pointerup",
+      stopDragging,
+    );
+
+    stage.addEventListener(
+      "pointercancel",
+      stopDragging,
+    );
 
     /*
-      If the forest is smaller than the available viewport,
-      keep it centered along that axis.
+      The Home button will dispatch this custom event.
     */
-    if (minimumCameraX > maximumCameraX) {
-      minimumCameraX = 0;
-      maximumCameraX = 0;
-    }
 
-    if (minimumCameraY > maximumCameraY) {
-      minimumCameraY = 0;
-      maximumCameraY = 0;
-    }
-
-    return {
-      minimumCameraX,
-      maximumCameraX,
-      minimumCameraY,
-      maximumCameraY,
-    };
-  }
-
-  function constrainCamera() {
-    const bounds = getCameraBounds();
-
-    cameraX = clamp(
-      cameraX,
-      bounds.minimumCameraX,
-      bounds.maximumCameraX,
+    window.addEventListener(
+      "forest:recenter",
+      recenterCamera,
     );
 
-    cameraY = clamp(
-      cameraY,
-      bounds.minimumCameraY,
-      bounds.maximumCameraY,
+    window.addEventListener(
+      "resize",
+      renderCamera,
     );
+
+    renderCamera();
   }
-
-  function updateCamera() {
-    constrainCamera();
-
-    panLayer.style.transform =
-      `translate3d(${cameraX}px, ${cameraY}px, 0)`;
-  }
-
-  stage.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) return;
-
-    isDragging = true;
-
-    pointerStartX = event.clientX;
-    pointerStartY = event.clientY;
-
-    cameraStartX = cameraX;
-    cameraStartY = cameraY;
-
-    stage.setPointerCapture(event.pointerId);
-    stage.classList.add("is-dragging");
-  });
-
-  stage.addEventListener("pointermove", (event) => {
-    if (!isDragging) return;
-
-    cameraX =
-      cameraStartX + (event.clientX - pointerStartX);
-
-    cameraY =
-      cameraStartY + (event.clientY - pointerStartY);
-
-    updateCamera();
-  });
-
-  function stopDragging(event: PointerEvent) {
-    if (!isDragging) return;
-
-    isDragging = false;
-    stage.classList.remove("is-dragging");
-
-    if (stage.hasPointerCapture(event.pointerId)) {
-      stage.releasePointerCapture(event.pointerId);
-    }
-  }
-
-  stage.addEventListener("pointerup", stopDragging);
-  stage.addEventListener("pointercancel", stopDragging);
-
-  window.addEventListener("resize", updateCamera);
-
-  updateCamera();
 </script>
 
 <style>
   .forest-stage {
     position: absolute;
     inset: 0;
+
     overflow: hidden;
+
     cursor: -webkit-grab;
     cursor: grab;
+
     user-select: none;
     touch-action: none;
   }
@@ -261,13 +584,25 @@ const worldMaxY =
     cursor: grabbing;
   }
 
+  .forest-stage.is-pan-disabled,
+  .forest-stage.is-empty {
+    cursor: default;
+  }
+
   .forest-pan-layer {
     position: absolute;
     left: 50%;
     top: 50%;
+
     width: 0;
     height: 0;
-    transform: translate3d(0, 0, 0);
+
+    transform: translate3d(
+      0,
+      0,
+      0
+    );
+
     will-change: transform;
   }
 
@@ -275,6 +610,7 @@ const worldMaxY =
     position: absolute;
     left: 0;
     top: 0;
+
     width: 0;
     height: 0;
   }
@@ -282,5 +618,47 @@ const worldMaxY =
   .forest-stage :global(img) {
     user-select: none;
     -webkit-user-drag: none;
+  }
+
+  /* =======================================================
+     EMPTY FOREST
+     ======================================================= */
+
+  .empty-forest-state {
+    position: absolute;
+    inset: 0;
+
+    display: grid;
+    place-items: center;
+
+    padding: 40px;
+    text-align: center;
+  }
+
+  .empty-forest-state p {
+    margin: 0;
+    padding: 18px 28px;
+
+    border: 1px solid
+      rgba(47, 99, 116, 0.24);
+
+    border-radius: 16px;
+
+    background:
+      rgba(255, 255, 255, 0.58);
+
+    box-shadow:
+      0 10px 28px
+      rgba(31, 79, 96, 0.12);
+
+    color: #2d5968;
+
+    font-size:
+      clamp(20px, 2.5vw, 32px);
+
+    font-weight: 700;
+    line-height: 1.3;
+
+    backdrop-filter: blur(4px);
   }
 </style>

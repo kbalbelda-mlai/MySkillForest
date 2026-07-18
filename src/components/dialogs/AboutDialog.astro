@@ -1,0 +1,466 @@
+---
+/* =========================================================
+   ABOUT CONTENT
+
+   The dialog looks for either:
+   - src/data/about.md
+   - src/data/about.txt
+
+   The text file is optional. If neither file exists, the
+   default message is displayed.
+   ========================================================= */
+
+const defaultAboutContent =
+  "My Skill Forest plants a tree for every skill acquired";
+
+/*
+  import.meta.glob() allows the component to continue compiling
+  even when the optional content file does not exist.
+*/
+const markdownFiles = import.meta.glob(
+  "../../data/about.md",
+  {
+    eager: true,
+    query: "?raw",
+    import: "default",
+  },
+) as Record<string, string>;
+
+const textFiles = import.meta.glob(
+  "../../data/about.txt",
+  {
+    eager: true,
+    query: "?raw",
+    import: "default",
+  },
+) as Record<string, string>;
+
+const markdownContent =
+  Object.values(markdownFiles)[0]?.trim();
+
+const textContent =
+  Object.values(textFiles)[0]?.trim();
+
+const aboutContent =
+  markdownContent ||
+  textContent ||
+  defaultAboutContent;
+---
+
+<div
+  id="about-dialog"
+  class="about-overlay"
+  aria-hidden="true"
+  data-about-overlay
+>
+  <section
+    class="about-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="about-dialog-title"
+  >
+    <button
+      class="about-close-button"
+      type="button"
+      aria-label="Close About window"
+      data-close-about-dialog
+    >
+      ×
+    </button>
+
+    <header class="about-header">
+      <h2 id="about-dialog-title">
+        About My Skill Forest
+      </h2>
+    </header>
+
+    <div
+      class="about-content"
+      data-about-content
+      tabindex="0"
+    >
+      {aboutContent}
+    </div>
+  </section>
+</div>
+
+<style>
+  /* =======================================================
+     OVERLAY
+     ======================================================= */
+
+  .about-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+
+    display: grid;
+    place-items: center;
+
+    padding: 40px;
+
+    background:
+      rgba(5, 38, 52, 0.82);
+
+    backdrop-filter: blur(4px);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+      opacity 220ms ease,
+      visibility 220ms ease;
+  }
+
+  .about-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* =======================================================
+     DIALOG
+     ======================================================= */
+
+  .about-dialog {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+
+    width: min(780px, 92vw);
+    height: min(620px, 82vh);
+
+    overflow: hidden;
+
+    border:
+      2px solid
+      rgba(10, 45, 61, 0.88);
+
+    border-radius: 26px;
+
+    background:
+      rgba(255, 255, 255, 0.98);
+
+    box-shadow:
+      0 24px 70px
+      rgba(0, 0, 0, 0.35);
+
+    transform:
+      translateY(18px)
+      scale(0.97);
+
+    transition:
+      transform 220ms ease;
+  }
+
+  .about-overlay.is-open
+  .about-dialog {
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  /* =======================================================
+     CLOSE BUTTON
+     ======================================================= */
+
+  .about-close-button {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 10;
+
+    width: 48px;
+    height: 48px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border:
+      2px solid #082b3a;
+
+    border-radius: 50%;
+
+    background: #176887;
+    color: white;
+
+    font-size: 34px;
+    font-weight: 300;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+      transform 160ms ease,
+      background 160ms ease;
+  }
+
+  .about-close-button:hover {
+    transform: scale(1.06);
+    background: #1d789b;
+  }
+
+  .about-close-button:focus-visible {
+    outline:
+      4px solid
+      rgba(104, 209, 255, 0.9);
+
+    outline-offset: 4px;
+  }
+
+  /* =======================================================
+     HEADER
+     ======================================================= */
+
+  .about-header {
+    flex-shrink: 0;
+
+    padding:
+      30px 84px 24px 32px;
+
+    border-bottom:
+      1px solid
+      rgba(33, 91, 112, 0.18);
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(232, 250, 255, 0.98),
+        rgba(205, 234, 248, 0.98)
+      );
+  }
+
+  .about-header h2 {
+    margin: 0;
+
+    color: #123e52;
+
+    font-size:
+      clamp(27px, 4vw, 40px);
+
+    line-height: 1.15;
+
+    overflow-wrap: anywhere;
+  }
+
+  /* =======================================================
+     SCROLLABLE CONTENT
+     ======================================================= */
+
+  .about-content {
+    flex: 1;
+    min-height: 0;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding:
+      30px 34px 40px;
+
+    color: #294b59;
+
+    font-size: 17px;
+    line-height: 1.7;
+
+    /*
+      Preserves paragraphs and line breaks from the external
+      text or Markdown file.
+    */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+
+    scrollbar-width: thin;
+    scrollbar-color:
+      rgba(36, 113, 143, 0.58)
+      rgba(217, 238, 246, 0.72);
+  }
+
+  .about-content::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .about-content::-webkit-scrollbar-track {
+    background:
+      rgba(217, 238, 246, 0.72);
+
+    border-radius: 10px;
+  }
+
+  .about-content::-webkit-scrollbar-thumb {
+    background:
+      rgba(36, 113, 143, 0.58);
+
+    border-radius: 10px;
+
+    border:
+      2px solid
+      rgba(217, 238, 246, 0.72);
+  }
+
+  .about-content:focus-visible {
+    outline:
+      3px solid
+      rgba(61, 156, 194, 0.55);
+
+    outline-offset: -5px;
+  }
+
+  /* =======================================================
+     RESPONSIVE
+     ======================================================= */
+
+  @media (max-width: 650px) {
+    .about-overlay {
+      padding: 20px;
+    }
+
+    .about-dialog {
+      width: 95vw;
+      height: 88vh;
+
+      border-radius: 20px;
+    }
+
+    .about-header {
+      padding:
+        24px 72px 20px 24px;
+    }
+
+    .about-close-button {
+      top: 14px;
+      right: 14px;
+
+      width: 44px;
+      height: 44px;
+
+      font-size: 30px;
+    }
+
+    .about-content {
+      padding:
+        24px 24px 34px;
+
+      font-size: 16px;
+    }
+  }
+</style>
+
+<script>
+  const aboutOverlay =
+    document.querySelector<HTMLElement>(
+      "[data-about-overlay]",
+    );
+
+  const aboutCloseButton =
+    aboutOverlay?.querySelector<HTMLButtonElement>(
+      "[data-close-about-dialog]",
+    );
+
+  const aboutContent =
+    aboutOverlay?.querySelector<HTMLElement>(
+      "[data-about-content]",
+    );
+
+  let previouslyFocusedElement:
+    HTMLElement | null = null;
+
+  function openAboutDialog() {
+    if (!aboutOverlay) return;
+
+    previouslyFocusedElement =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    aboutOverlay.classList.add(
+      "is-open",
+    );
+
+    aboutOverlay.setAttribute(
+      "aria-hidden",
+      "false",
+    );
+
+    document.body.style.overflow =
+      "hidden";
+
+    /*
+      Reset the content to the beginning each time the dialog
+      opens.
+    */
+    if (aboutContent) {
+      aboutContent.scrollTop = 0;
+    }
+
+    aboutCloseButton?.focus();
+
+    console.log(
+      "About dialog opened.",
+    );
+  }
+
+  function closeAboutDialog() {
+    if (!aboutOverlay) return;
+
+    aboutOverlay.classList.remove(
+      "is-open",
+    );
+
+    aboutOverlay.setAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    document.body.style.overflow =
+      "";
+
+    previouslyFocusedElement?.focus({
+      preventScroll: true,
+    });
+
+    previouslyFocusedElement = null;
+
+    console.log(
+      "About dialog closed.",
+    );
+  }
+
+  window.addEventListener(
+    "about-dialog:open",
+    openAboutDialog,
+  );
+
+  aboutCloseButton?.addEventListener(
+    "click",
+    closeAboutDialog,
+  );
+
+  aboutOverlay?.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.target === aboutOverlay
+      ) {
+        closeAboutDialog();
+      }
+    },
+  );
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key === "Escape" &&
+        aboutOverlay?.classList.contains(
+          "is-open",
+        )
+      ) {
+        closeAboutDialog();
+      }
+    },
+  );
+</script>

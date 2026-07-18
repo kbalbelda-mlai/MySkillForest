@@ -1,47 +1,209 @@
 ---
-import { loadForestPatches } from "../scripts/loadForestData";
+import {
+  loadForestData,
+} from "../scripts/loadForestData";
+
 import ForestWorld from "../components/forest/ForestWorld.astro";
+import PatchViewerDialog from "../components/dialogs/PatchViewerDialog.astro";
+import AboutDialog from "../components/dialogs/AboutDialog.astro";
+
+/* =========================================================
+   PAGE DATA
+   ========================================================= */
 
 const pageTitle = "My Skill Forest";
-const forestPatches = loadForestPatches();
 
-console.log(forestPatches);
+const {
+  patches: forestPatches,
+  trees,
+  statistics,
+  treeSearchIndex,
+} = loadForestData();
+
+console.log("Index page forest data:", {
+  forestPatches,
+  trees,
+  statistics,
+  treeSearchIndex,
+});
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
+
+    <meta
+      name="viewport"
+      content="width=device-width"
+    />
+
     <title>{pageTitle}</title>
   </head>
 
   <body>
     <header class="header-ribbon">
-      <div class="mode-button">Strolling Mode</div>
+      <div class="mode-button">
+        Strolling Mode
+      </div>
 
-      <nav class="main-nav">
-        <button type="button">Home</button>
-        <button type="button">Tree Search</button>
+      <nav
+        class="main-nav"
+        aria-label="Forest navigation"
+      >
+        <button
+          type="button"
+          data-home-button
+        >
+          Home
+        </button>
+
+        <button
+          type="button"
+          data-about-button
+        >
+          About
+        </button>
       </nav>
 
-      <div class="forest-stats">
-        <span>Patches: 7</span>
-        <span>Saplings: 0</span>
-        <span>Trees: 0</span>
+      <div
+        class="tree-search"
+        data-tree-search
+      >
+        <label
+          class="visually-hidden"
+          for="tree-search-input"
+        >
+          Search for a tree
+        </label>
+
+        <div class="tree-search-input-wrapper">
+          <span
+            class="tree-search-icon"
+            aria-hidden="true"
+          >
+            ⌕
+          </span>
+
+          <input
+            id="tree-search-input"
+            class="tree-search-input"
+            type="text"
+            placeholder="Search trees..."
+            autocomplete="off"
+            spellcheck="false"
+            aria-autocomplete="list"
+            aria-controls="tree-search-results"
+            aria-expanded="false"
+            data-tree-search-input
+          />
+
+          <button
+            class="tree-search-clear"
+            type="button"
+            aria-label="Clear tree search"
+            data-tree-search-clear
+            hidden
+          >
+            ×
+          </button>
+        </div>
+
+        <div
+          id="tree-search-results"
+          class="tree-search-results"
+          role="listbox"
+          aria-label="Tree search results"
+          data-tree-search-results
+          hidden
+        >
+          {
+            treeSearchIndex.map(
+              (record) => (
+                <button
+                  class="tree-search-result"
+                  type="button"
+                  role="option"
+                  data-tree-search-result
+                  data-tree-id={record.treeId}
+                  data-tree-name={
+                    record.treeName
+                  }
+                  data-patch-id={
+                    record.patchId
+                  }
+                  data-patch-name={
+                    record.patchName
+                  }
+                  data-normalized-tree-name={
+                    record.normalizedTreeName
+                  }
+                  data-normalized-patch-name={
+                    record.normalizedPatchName
+                  }
+                  hidden
+                >
+                  <span
+                    class="search-result-tree-name"
+                  >
+                    {record.treeName}
+                  </span>
+
+                  <span
+                    class="search-result-patch-name"
+                  >
+                    {record.patchName}
+                  </span>
+                </button>
+              ),
+            )
+          }
+
+          <div
+            class="tree-search-empty"
+            data-tree-search-empty
+            hidden
+          >
+            No matching trees found.
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="forest-stats"
+        aria-label="Forest statistics"
+      >
+        <span>
+          <strong>Patches:</strong>
+          {statistics.patchCount}
+        </span>
+
+        <span>
+          <strong>Saplings:</strong>
+          {statistics.saplingCount}
+        </span>
+
+        <span>
+          <strong>Trees:</strong>
+          {statistics.treeCount}
+        </span>
       </div>
     </header>
 
     <main class="forest-viewport">
-      <div class="forest-world">
-        
-		<ForestWorld />
-
-      </div>
+      <ForestWorld />
     </main>
+
+    <PatchViewerDialog />
+
+    <AboutDialog />
   </body>
 </html>
 
 <style>
+  /* =======================================================
+     GLOBAL
+     ======================================================= */
+
   :global(*) {
     box-sizing: border-box;
   }
@@ -50,61 +212,953 @@ console.log(forestPatches);
   :global(body) {
     width: 100%;
     height: 100%;
+
     margin: 0;
+
     overflow: hidden;
-    font-family: Arial, sans-serif;
+
+    font-family:
+      Arial,
+      sans-serif;
   }
 
   body {
     display: flex;
     flex-direction: column;
+
     background: #b8dce8;
   }
 
+  button,
+  input {
+    font: inherit;
+  }
+
+  .visually-hidden {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    padding: 0;
+    margin: -1px;
+
+    overflow: hidden;
+
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+
+    border: 0;
+  }
+
+  /* =======================================================
+     HEADER RIBBON
+     ======================================================= */
+
   .header-ribbon {
-    height: 64px;
+    position: relative;
+    z-index: 1000;
+
+    min-height: 64px;
     flex-shrink: 0;
+
     display: flex;
     align-items: center;
-    gap: 24px;
-    padding: 0 20px;
-    background: rgba(255, 255, 255, 0.94);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
-    z-index: 100;
+
+    gap: 18px;
+
+    padding:
+      8px 20px;
+
+    background:
+      rgba(255, 255, 255, 0.94);
+
+    border-bottom:
+      1px solid
+      rgba(0, 0, 0, 0.15);
+
+    box-shadow:
+      0 4px 18px
+      rgba(23, 72, 89, 0.08);
   }
 
   .mode-button {
-    padding: 10px 14px;
+    flex-shrink: 0;
+
+    padding:
+      10px 14px;
+
     border-radius: 8px;
+
     background: #dcefdc;
+
+    color: #254c33;
+
     font-weight: 700;
+
+    white-space: nowrap;
   }
+
+  /* =======================================================
+     NAVIGATION
+     ======================================================= */
 
   .main-nav {
     display: flex;
-    gap: 10px;
+    align-items: center;
+
+    gap: 4px;
+
+    flex-shrink: 0;
   }
 
   .main-nav button {
     border: 0;
+
+    border-radius: 8px;
+
     background: transparent;
-    padding: 10px 12px;
+
+    padding:
+      10px 12px;
+
+    color: #183f50;
+
     cursor: pointer;
+
     font-size: 15px;
+    font-weight: 700;
+
+    transition:
+      background 150ms ease,
+      transform 150ms ease;
   }
+
+  .main-nav button:hover {
+    background:
+      rgba(23, 104, 135, 0.10);
+  }
+
+  .main-nav button:active {
+    transform: scale(0.97);
+  }
+
+  .main-nav button:focus-visible {
+    outline:
+      3px solid
+      rgba(67, 172, 220, 0.75);
+
+    outline-offset: 2px;
+  }
+
+  /* =======================================================
+     TREE SEARCH
+     ======================================================= */
+
+  .tree-search {
+    position: relative;
+
+    width:
+      min(360px, 30vw);
+
+    min-width: 210px;
+  }
+
+  .tree-search-input-wrapper {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+  }
+
+  .tree-search-icon {
+    position: absolute;
+    left: 12px;
+    z-index: 2;
+
+    color: #52717d;
+
+    font-size: 19px;
+
+    pointer-events: none;
+  }
+
+  .tree-search-input {
+    width: 100%;
+    height: 42px;
+
+    padding:
+      8px 40px 8px 38px;
+
+    border:
+      1px solid
+      rgba(44, 91, 108, 0.32);
+
+    border-radius: 10px;
+
+    background:
+      rgba(246, 252, 254, 0.96);
+
+    color: #173c4b;
+
+    outline: none;
+
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      background 150ms ease;
+  }
+
+  .tree-search-input::placeholder {
+    color: #708993;
+  }
+
+  .tree-search-input:hover {
+    background: white;
+  }
+
+  .tree-search-input:focus {
+    border-color: #3d9cc2;
+
+    background: white;
+
+    box-shadow:
+      0 0 0 3px
+      rgba(74, 177, 218, 0.18);
+  }
+
+  .tree-search-clear {
+    position: absolute;
+    right: 7px;
+    z-index: 3;
+
+    width: 30px;
+    height: 30px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 50%;
+
+    background: transparent;
+
+    color: #52717d;
+
+    font-size: 22px;
+    line-height: 1;
+
+    cursor: pointer;
+  }
+
+  .tree-search-clear:hover {
+    background:
+      rgba(23, 104, 135, 0.10);
+  }
+
+  .tree-search-results {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 4000;
+
+    max-height: 360px;
+
+    overflow-y: auto;
+
+    padding: 7px;
+
+    border:
+      1px solid
+      rgba(29, 84, 104, 0.26);
+
+    border-radius: 12px;
+
+    background:
+      rgba(255, 255, 255, 0.98);
+
+    box-shadow:
+      0 16px 34px
+      rgba(17, 62, 80, 0.22);
+
+    backdrop-filter: blur(8px);
+  }
+
+  .tree-search-result {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 4px;
+
+    padding:
+      11px 12px;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: #153b4a;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+      background 140ms ease,
+      transform 140ms ease;
+  }
+
+  .tree-search-result:hover,
+  .tree-search-result.is-active {
+    background:
+      linear-gradient(
+        135deg,
+        rgba(224, 247, 255, 0.98),
+        rgba(204, 232, 251, 0.98)
+      );
+  }
+
+  .tree-search-result:active {
+    transform: scale(0.99);
+  }
+
+  .tree-search-result:focus-visible {
+    outline:
+      3px solid
+      rgba(58, 160, 207, 0.55);
+
+    outline-offset: -2px;
+  }
+
+  .search-result-tree-name {
+    font-size: 15px;
+    font-weight: 800;
+
+    line-height: 1.25;
+
+    overflow-wrap: anywhere;
+  }
+
+  .search-result-patch-name {
+    color: #5d7680;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    line-height: 1.3;
+
+    overflow-wrap: anywhere;
+  }
+
+  .tree-search-empty {
+    padding:
+      18px 14px;
+
+    color: #647b84;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    text-align: center;
+  }
+
+  .tree-search-result[hidden],
+  .tree-search-empty[hidden],
+  .tree-search-results[hidden],
+  .tree-search-clear[hidden] {
+    display: none !important;
+  }
+
+  /* =======================================================
+     STATISTICS
+     ======================================================= */
 
   .forest-stats {
     margin-left: auto;
+
     display: flex;
+    align-items: center;
+
     gap: 18px;
+
+    flex-shrink: 0;
+
+    color: #294d5c;
+
     font-size: 14px;
+
+    white-space: nowrap;
   }
+
+  .forest-stats span {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  /* =======================================================
+     FOREST VIEWPORT
+     ======================================================= */
 
   .forest-viewport {
     position: relative;
+
     flex: 1;
+
     overflow: hidden;
+
     background: #b8dce8;
   }
 
+  /* =======================================================
+     RESPONSIVE HEADER
+     ======================================================= */
+
+  @media (max-width: 950px) {
+    .header-ribbon {
+      flex-wrap: wrap;
+
+      gap: 8px 14px;
+
+      padding:
+        8px 14px;
+    }
+
+    .tree-search {
+      order: 3;
+
+      width: 100%;
+    }
+
+    .forest-stats {
+      margin-left: auto;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .mode-button {
+      display: none;
+    }
+
+    .forest-stats {
+      width: 100%;
+
+      justify-content: space-between;
+
+      order: 4;
+
+      margin-left: 0;
+
+      padding:
+        2px 4px;
+    }
+
+    .main-nav {
+      flex: 1;
+    }
+  }
 </style>
+
+<script>
+  /* =======================================================
+     TYPES
+     ======================================================= */
+
+  interface PatchViewerOpenDetail {
+    patchId: string;
+    treeId?: string;
+  }
+
+  /* =======================================================
+     ELEMENT REFERENCES
+     ======================================================= */
+
+  const homeButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-home-button]",
+    );
+
+  const aboutButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-about-button]",
+    );
+
+  const searchContainer =
+    document.querySelector<HTMLElement>(
+      "[data-tree-search]",
+    );
+
+  const searchInput =
+    document.querySelector<HTMLInputElement>(
+      "[data-tree-search-input]",
+    );
+
+  const clearSearchButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-tree-search-clear]",
+    );
+
+  const resultsPanel =
+    document.querySelector<HTMLElement>(
+      "[data-tree-search-results]",
+    );
+
+  const emptySearchMessage =
+    document.querySelector<HTMLElement>(
+      "[data-tree-search-empty]",
+    );
+
+  const searchResults = Array.from(
+    document.querySelectorAll<HTMLButtonElement>(
+      "[data-tree-search-result]",
+    ),
+  );
+
+  let visibleResults:
+    HTMLButtonElement[] = [];
+
+  let activeResultIndex = -1;
+
+  /* =======================================================
+     HOME BUTTON
+     ======================================================= */
+
+  homeButton?.addEventListener(
+    "click",
+    () => {
+      window.dispatchEvent(
+        new CustomEvent(
+          "forest:recenter",
+        ),
+      );
+
+      closeSearchResults();
+
+      console.log(
+        "Home button selected.",
+      );
+    },
+  );
+
+  /* =======================================================
+     ABOUT BUTTON
+     ======================================================= */
+
+  aboutButton?.addEventListener(
+    "click",
+    () => {
+      closeSearchResults();
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "about-dialog:open",
+        ),
+      );
+
+      console.log(
+        "About dialog requested.",
+      );
+    },
+  );
+
+  /* =======================================================
+     TREE SEARCH HELPERS
+     ======================================================= */
+
+  function normalizeSearchText(
+    value: string,
+  ): string {
+    return value
+      .trim()
+      .toLocaleLowerCase();
+  }
+
+  function setSearchExpanded(
+    expanded: boolean,
+  ) {
+    searchInput?.setAttribute(
+      "aria-expanded",
+      String(expanded),
+    );
+  }
+
+  function resetActiveResult() {
+    activeResultIndex = -1;
+
+    searchResults.forEach(
+      (result) => {
+        result.classList.remove(
+          "is-active",
+        );
+
+        result.setAttribute(
+          "aria-selected",
+          "false",
+        );
+      },
+    );
+  }
+
+  function setActiveResult(
+    newIndex: number,
+  ) {
+    if (
+      visibleResults.length === 0
+    ) {
+      resetActiveResult();
+      return;
+    }
+
+    const normalizedIndex =
+      ((newIndex %
+        visibleResults.length) +
+        visibleResults.length) %
+      visibleResults.length;
+
+    resetActiveResult();
+
+    activeResultIndex =
+      normalizedIndex;
+
+    const activeResult =
+      visibleResults[
+        activeResultIndex
+      ];
+
+    activeResult.classList.add(
+      "is-active",
+    );
+
+    activeResult.setAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    activeResult.scrollIntoView({
+      block: "nearest",
+    });
+  }
+
+  function closeSearchResults() {
+    if (resultsPanel) {
+      resultsPanel.hidden = true;
+    }
+
+    setSearchExpanded(false);
+    resetActiveResult();
+  }
+
+  function openSearchResults() {
+    if (!resultsPanel) return;
+
+    resultsPanel.hidden = false;
+
+    setSearchExpanded(true);
+  }
+
+  function updateClearButton() {
+    if (!clearSearchButton) {
+      return;
+    }
+
+    clearSearchButton.hidden =
+      !searchInput?.value;
+  }
+
+  function updateSearchResults() {
+    if (
+      !searchInput ||
+      !resultsPanel
+    ) {
+      return;
+    }
+
+    const query =
+      normalizeSearchText(
+        searchInput.value,
+      );
+
+    visibleResults = [];
+
+    for (
+      const result of searchResults
+    ) {
+      const treeName =
+        result.dataset
+          .normalizedTreeName ??
+        "";
+
+      const patchName =
+        result.dataset
+          .normalizedPatchName ??
+        "";
+
+      const isMatch =
+        query.length > 0 &&
+        (
+          treeName.includes(query) ||
+          patchName.includes(query)
+        );
+
+      result.hidden = !isMatch;
+
+      if (isMatch) {
+        visibleResults.push(
+          result,
+        );
+      }
+    }
+
+    const hasQuery =
+      query.length > 0;
+
+    const hasResults =
+      visibleResults.length > 0;
+
+    if (emptySearchMessage) {
+      emptySearchMessage.hidden =
+        !hasQuery ||
+        hasResults;
+    }
+
+    if (hasQuery) {
+      openSearchResults();
+    } else {
+      closeSearchResults();
+    }
+
+    resetActiveResult();
+    updateClearButton();
+
+    console.log(
+      "Tree search updated:",
+      {
+        query,
+        resultCount:
+          visibleResults.length,
+      },
+    );
+  }
+
+  function chooseSearchResult(
+    result: HTMLButtonElement,
+  ) {
+    const patchId =
+      result.dataset.patchId?.trim();
+
+    const treeId =
+      result.dataset.treeId?.trim();
+
+    if (
+      !patchId ||
+      !treeId
+    ) {
+      console.warn(
+        "The selected tree search result is missing its patch or tree ID.",
+      );
+
+      return;
+    }
+
+    const detail:
+      PatchViewerOpenDetail = {
+        patchId,
+        treeId,
+      };
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "patch-viewer:open",
+        {
+          detail,
+        },
+      ),
+    );
+
+    if (searchInput) {
+      searchInput.value =
+        result.dataset.treeName ??
+        "";
+    }
+
+    updateClearButton();
+    closeSearchResults();
+
+    console.log(
+      "Tree search result selected:",
+      {
+        patchId,
+        treeId,
+        treeName:
+          result.dataset.treeName,
+        patchName:
+          result.dataset.patchName,
+      },
+    );
+  }
+
+  /* =======================================================
+     TREE SEARCH EVENTS
+     ======================================================= */
+
+  searchInput?.addEventListener(
+    "input",
+    updateSearchResults,
+  );
+
+  searchInput?.addEventListener(
+    "focus",
+    () => {
+      if (
+        searchInput.value.trim()
+      ) {
+        updateSearchResults();
+      }
+    },
+  );
+
+  searchInput?.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key ===
+        "ArrowDown"
+      ) {
+        event.preventDefault();
+
+        if (
+          resultsPanel?.hidden
+        ) {
+          updateSearchResults();
+        }
+
+        setActiveResult(
+          activeResultIndex + 1,
+        );
+
+        return;
+      }
+
+      if (
+        event.key ===
+        "ArrowUp"
+      ) {
+        event.preventDefault();
+
+        setActiveResult(
+          activeResultIndex - 1,
+        );
+
+        return;
+      }
+
+      if (
+        event.key === "Enter"
+      ) {
+        if (
+          activeResultIndex >= 0 &&
+          visibleResults[
+            activeResultIndex
+          ]
+        ) {
+          event.preventDefault();
+
+          chooseSearchResult(
+            visibleResults[
+              activeResultIndex
+            ],
+          );
+        } else if (
+          visibleResults.length === 1
+        ) {
+          event.preventDefault();
+
+          chooseSearchResult(
+            visibleResults[0],
+          );
+        }
+
+        return;
+      }
+
+      if (
+        event.key === "Escape"
+      ) {
+        closeSearchResults();
+      }
+    },
+  );
+
+  clearSearchButton?.addEventListener(
+    "click",
+    () => {
+      if (!searchInput) return;
+
+      searchInput.value = "";
+
+      updateSearchResults();
+
+      searchInput.focus();
+
+      console.log(
+        "Tree search cleared.",
+      );
+    },
+  );
+
+  searchResults.forEach(
+    (result) => {
+      result.addEventListener(
+        "click",
+        () => {
+          chooseSearchResult(
+            result,
+          );
+        },
+      );
+
+      result.addEventListener(
+        "mouseenter",
+        () => {
+          const index =
+            visibleResults.indexOf(
+              result,
+            );
+
+          if (index >= 0) {
+            setActiveResult(
+              index,
+            );
+          }
+        },
+      );
+    },
+  );
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      const target =
+        event.target as Node;
+
+      if (
+        searchContainer &&
+        !searchContainer.contains(
+          target,
+        )
+      ) {
+        closeSearchResults();
+      }
+    },
+  );
+
+  updateClearButton();
+</script>

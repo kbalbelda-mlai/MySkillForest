@@ -1,6 +1,13 @@
 import Papa from "papaparse";
+
 import forestPatchCsv from "../data/Forest_Patch.csv?raw";
 import treesCsv from "../data/Trees.csv?raw";
+
+/* =========================================================
+   DATA TYPES
+   ========================================================= */
+
+export type GrowthStage = "SAPLING" | "TREE";
 
 export interface ForestPatchRecord {
   Patch_ID: string;
@@ -23,55 +30,342 @@ export interface TreeRecord {
   Tree_Description: string;
   Date_Planted: string;
   Date_Sprouted: string;
-  Growth_Stage: "SAPLING" | "TREE";
+  Growth_Stage: GrowthStage;
   Display_Slot: number;
   Evidence_Path: string;
 }
 
-export function loadTrees(): TreeRecord[] {
-  const parsed = Papa.parse<Record<string, string>>(treesCsv, {
-    header: true,
-    skipEmptyLines: true,
-  });
-
-  if (parsed.errors.length > 0) {
-    console.error("Trees.csv parsing errors:", parsed.errors);
-  }
-
-  return parsed.data.map((row) => ({
-    Tree_ID: row.Tree_ID,
-    Patch_ID: row.Patch_ID,
-    Tree_Name: row.Tree_Name,
-    Tree_Description: row.Tree_Description,
-    Date_Planted: row.Date_Planted,
-    Date_Sprouted: row.Date_Sprouted,
-    Growth_Stage: row.Growth_Stage as "SAPLING" | "TREE",
-    Display_Slot: Number(row.Display_Slot),
-    Evidence_Path: row.Evidence_Path,
-  }));
+export interface ForestStatistics {
+  patchCount: number;
+  saplingCount: number;
+  treeCount: number;
+  totalTreeCount: number;
 }
 
-export function loadForestPatches(): ForestPatchRecord[] {
-  const parsed = Papa.parse<Record<string, string>>(forestPatchCsv, {
+export interface TreeSearchRecord {
+  treeId: string;
+  treeName: string;
+  patchId: string;
+  patchName: string;
+  normalizedTreeName: string;
+  normalizedPatchName: string;
+}
+
+export interface ForestData {
+  patches: ForestPatchRecord[];
+  trees: TreeRecord[];
+  statistics: ForestStatistics;
+  treeSearchIndex: TreeSearchRecord[];
+}
+
+/* =========================================================
+   INTERNAL HELPERS
+   ========================================================= */
+
+function normalizeText(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function normalizeNumber(
+  value: unknown,
+  fallback = 0,
+): number {
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue)
+    ? parsedValue
+    : fallback;
+}
+
+function normalizePatchStyle(value: unknown): string {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return "01";
+  }
+
+  return normalizedValue.padStart(2, "0");
+}
+
+function normalizeGrowthStage(
+  value: unknown,
+): GrowthStage {
+  const normalizedValue = normalizeText(value).toUpperCase();
+
+  return normalizedValue === "TREE"
+    ? "TREE"
+    : "SAPLING";
+}
+
+function parseCsv(
+  csvText: string,
+  fileName: string,
+): Record<string, string>[] {
+  const parsed = Papa.parse<Record<string, string>>(csvText, {
     header: true,
-    skipEmptyLines: true,
+    skipEmptyLines: "greedy",
+    transformHeader: (header) => header.trim(),
   });
 
   if (parsed.errors.length > 0) {
-    console.error("Forest_Patch.csv parsing errors:", parsed.errors);
+    console.error(
+      `${fileName} parsing errors:`,
+      parsed.errors,
+    );
   }
 
-  return parsed.data.map((row) => ({
-    Patch_ID: row.Patch_ID,
-    Patch_Name: row.Patch_Name,
-    Patch_Style: row.Patch_Style.padStart(2, "0"),
-    Patch_Order: Number(row.Patch_Order),
-    Hex_Q: Number(row.Hex_Q),
-    Hex_R: Number(row.Hex_R),
-    Saplings_Planted: Number(row.Saplings_Planted),
-    Trees_Grown: Number(row.Trees_Grown),
-    Patch_Description: row.Patch_Description,
-    Date_Created: row.Date_Created,
-    Last_Updated: row.Last_Updated,
-  }));
+  console.log(
+    `${fileName}: ${parsed.data.length} raw record(s) loaded.`,
+  );
+
+  return parsed.data;
+}
+
+function isValidPatchRow(
+  row: Record<string, string>,
+): boolean {
+  return normalizeText(row.Patch_ID).length > 0;
+}
+
+function isValidTreeRow(
+  row: Record<string, string>,
+): boolean {
+  return (
+    normalizeText(row.Tree_ID).length > 0 &&
+    normalizeText(row.Patch_ID).length > 0
+  );
+}
+
+/* =========================================================
+   FOREST PATCH LOADER
+   ========================================================= */
+
+export function loadForestPatches(): ForestPatchRecord[] {
+  const rows = parseCsv(
+    forestPatchCsv,
+    "Forest_Patch.csv",
+  );
+
+  const patches = rows
+    .filter(isValidPatchRow)
+    .map((row): ForestPatchRecord => ({
+      Patch_ID: normalizeText(row.Patch_ID),
+
+      Patch_Name:
+        normalizeText(row.Patch_Name) ||
+        `Forest Patch ${normalizeText(row.Patch_ID)}`,
+
+      Patch_Style: normalizePatchStyle(
+        row.Patch_Style,
+      ),
+
+      Patch_Order: normalizeNumber(
+        row.Patch_Order,
+      ),
+
+      Hex_Q: normalizeNumber(row.Hex_Q),
+
+      Hex_R: normalizeNumber(row.Hex_R),
+
+      Saplings_Planted: normalizeNumber(
+        row.Saplings_Planted,
+      ),
+
+      Trees_Grown: normalizeNumber(
+        row.Trees_Grown,
+      ),
+
+      Patch_Description: normalizeText(
+        row.Patch_Description,
+      ),
+
+      Date_Created: normalizeText(
+        row.Date_Created,
+      ),
+
+      Last_Updated: normalizeText(
+        row.Last_Updated,
+      ),
+    }))
+    .sort((firstPatch, secondPatch) => {
+      return (
+        firstPatch.Patch_Order -
+        secondPatch.Patch_Order
+      );
+    });
+
+  console.log(
+    `Forest_Patch.csv: ${patches.length} valid patch record(s) loaded.`,
+  );
+
+  return patches;
+}
+
+/* =========================================================
+   TREE LOADER
+   ========================================================= */
+
+export function loadTrees(): TreeRecord[] {
+  const rows = parseCsv(
+    treesCsv,
+    "Trees.csv",
+  );
+
+  const trees = rows
+    .filter(isValidTreeRow)
+    .map((row): TreeRecord => ({
+      Tree_ID: normalizeText(row.Tree_ID),
+
+      Patch_ID: normalizeText(row.Patch_ID),
+
+      Tree_Name:
+        normalizeText(row.Tree_Name) ||
+        "Unnamed Tree",
+
+      Tree_Description: normalizeText(
+        row.Tree_Description,
+      ),
+
+      Date_Planted: normalizeText(
+        row.Date_Planted,
+      ),
+
+      Date_Sprouted: normalizeText(
+        row.Date_Sprouted,
+      ),
+
+      Growth_Stage: normalizeGrowthStage(
+        row.Growth_Stage,
+      ),
+
+      Display_Slot: normalizeNumber(
+        row.Display_Slot,
+      ),
+
+      Evidence_Path: normalizeText(
+        row.Evidence_Path,
+      ),
+    }))
+    .sort((firstTree, secondTree) => {
+      if (firstTree.Patch_ID !== secondTree.Patch_ID) {
+        return firstTree.Patch_ID.localeCompare(
+          secondTree.Patch_ID,
+          undefined,
+          {
+            numeric: true,
+          },
+        );
+      }
+
+      return (
+        firstTree.Display_Slot -
+        secondTree.Display_Slot
+      );
+    });
+
+  console.log(
+    `Trees.csv: ${trees.length} valid tree record(s) loaded.`,
+  );
+
+  return trees;
+}
+
+/* =========================================================
+   STATISTICS
+   ========================================================= */
+
+export function getForestStatistics(
+  patches: ForestPatchRecord[],
+  trees: TreeRecord[],
+): ForestStatistics {
+  const saplingCount = trees.filter(
+    (tree) => tree.Growth_Stage === "SAPLING",
+  ).length;
+
+  const treeCount = trees.filter(
+    (tree) => tree.Growth_Stage === "TREE",
+  ).length;
+
+  return {
+    patchCount: patches.length,
+    saplingCount,
+    treeCount,
+    totalTreeCount: trees.length,
+  };
+}
+
+/* =========================================================
+   TREE SEARCH INDEX
+   ========================================================= */
+
+export function buildTreeSearchIndex(
+  patches: ForestPatchRecord[],
+  trees: TreeRecord[],
+): TreeSearchRecord[] {
+  const patchNamesById = new Map<string, string>();
+
+  for (const patch of patches) {
+    patchNamesById.set(
+      patch.Patch_ID,
+      patch.Patch_Name,
+    );
+  }
+
+  return trees
+    .map((tree): TreeSearchRecord => {
+      const patchName =
+        patchNamesById.get(tree.Patch_ID) ??
+        "Unknown Forest Patch";
+
+      return {
+        treeId: tree.Tree_ID,
+        treeName: tree.Tree_Name,
+        patchId: tree.Patch_ID,
+        patchName,
+        normalizedTreeName:
+          tree.Tree_Name.toLocaleLowerCase(),
+        normalizedPatchName:
+          patchName.toLocaleLowerCase(),
+      };
+    })
+    .sort((firstTree, secondTree) => {
+      return firstTree.treeName.localeCompare(
+        secondTree.treeName,
+      );
+    });
+}
+
+/* =========================================================
+   COMPLETE FOREST DATA
+   ========================================================= */
+
+export function loadForestData(): ForestData {
+  const patches = loadForestPatches();
+  const trees = loadTrees();
+
+  const statistics = getForestStatistics(
+    patches,
+    trees,
+  );
+
+  const treeSearchIndex =
+    buildTreeSearchIndex(
+      patches,
+      trees,
+    );
+
+  console.log("Complete forest data loaded:", {
+    patchCount: statistics.patchCount,
+    saplingCount: statistics.saplingCount,
+    treeCount: statistics.treeCount,
+    totalTreeCount: statistics.totalTreeCount,
+    searchRecordCount: treeSearchIndex.length,
+  });
+
+  return {
+    patches,
+    trees,
+    statistics,
+    treeSearchIndex,
+  };
 }

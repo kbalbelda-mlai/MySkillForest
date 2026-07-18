@@ -2,7 +2,12 @@
 import treeSlots from "../../data/tree_slots.json";
 
 interface Props {
+  treeId: string;
   treeName: string;
+  treeDescription: string;
+  datePlanted: string;
+  dateSprouted: string;
+  evidencePath: string;
   patchStyle: string;
   growthStage: "SAPLING" | "TREE";
   displaySlot: number;
@@ -10,7 +15,12 @@ interface Props {
 }
 
 const {
+  treeId,
   treeName,
+  treeDescription,
+  datePlanted,
+  dateSprouted,
+  evidencePath,
   patchStyle,
   growthStage,
   displaySlot,
@@ -27,14 +37,6 @@ if (!slot) {
 
 const normalizedPatchStyle = patchStyle.padStart(2, "0");
 
-/*
-Slots repeat tree styles in this sequence:
-1 → Style 01
-2 → Style 02
-3 → Style 03
-4 → Style 01
-...
-*/
 const treeStyleNumber = ((displaySlot - 1) % 3) + 1;
 const normalizedTreeStyle = String(treeStyleNumber).padStart(2, "0");
 
@@ -47,9 +49,6 @@ const assetFolder =
 const assetPath =
   `/assets/${assetFolder}/${assetPrefix}_${normalizedPatchStyle}_${normalizedTreeStyle}.png`;
 
-/*
-Original standardized asset dimensions.
-*/
 const nativeWidth = growthStage === "TREE" ? 295 : 177;
 const nativeHeight = growthStage === "TREE" ? 414 : 236;
 
@@ -68,7 +67,14 @@ const renderOrder = Number(slot.Render_Order);
 
 <div
   class="skill-tree"
-  title={treeName}
+  data-tree-id={treeId}
+  data-tree-name={treeName}
+  data-tree-description={treeDescription}
+  data-tree-date-planted={datePlanted}
+  data-tree-date-sprouted={dateSprouted}
+  data-tree-evidence-path={evidencePath}
+  data-tree-growth-stage={growthStage}
+  data-tree-display-slot={displaySlot}
   style={`
     left: ${xPercent}%;
     top: ${yPercent}%;

@@ -10,11 +10,19 @@ interface Props {
   trees?: TreeRecord[];
   scale?: number;
   showLabel?: boolean;
+  patchId: string;
+  patchDescription: string;
+  saplingsPlanted: number;
+  treesGrown: number;
 }
 
 const {
+  patchId,
   patchName,
   patchStyle,
+  patchDescription,
+  saplingsPlanted,
+  treesGrown,
   x,
   y,
   trees = [],
@@ -31,6 +39,15 @@ const displaySize = nativePatchSize * scale;
 
 <div
   class="forest-patch"
+  role="button"
+  tabindex="0"
+  data-patch-viewer-trigger
+  data-patch-id={patchId}
+  data-patch-name={patchName}
+  data-patch-style={normalizedStyle}
+  data-patch-description={patchDescription}
+  data-patch-saplings={saplingsPlanted}
+  data-patch-trees={treesGrown}
   style={`
     left: ${x}px;
     top: ${y}px;
@@ -48,7 +65,12 @@ const displaySize = nativePatchSize * scale;
   {
     trees.map((tree) => (
       <SkillTree
+        treeId={tree.Tree_ID}
         treeName={tree.Tree_Name}
+        treeDescription={tree.Tree_Description}
+        datePlanted={tree.Date_Planted}
+        dateSprouted={tree.Date_Sprouted}
+        evidencePath={tree.Evidence_Path}
         patchStyle={patchStyle}
         growthStage={tree.Growth_Stage}
         displaySlot={tree.Display_Slot}
@@ -64,6 +86,17 @@ const displaySize = nativePatchSize * scale;
       </div>
     )
   }
+
+  {
+    showLabel && (
+      <div class="patch-description">
+        {
+          patchDescription ||
+          "No patch description has been provided."
+        }
+      </div>
+    )
+  } 
 </div>
 
 <style>
@@ -86,7 +119,7 @@ const displaySize = nativePatchSize * scale;
     left: 50%;
     top: 8%;
     z-index: 1000;
-    
+
     transform: translate(-50%, 6px);
     padding: 6px 10px;
     border-radius: 8px;
@@ -101,6 +134,53 @@ const displaySize = nativePatchSize * scale;
       opacity 180ms ease,
       transform 180ms ease,
       visibility 180ms ease;
+  }
+
+  .patch-description {
+    position: absolute;
+    left: 50%;
+    bottom: 5%;
+    z-index: 1001;
+
+    width: min(88%, 340px);
+    padding: 10px 14px;
+
+    transform: translate(-50%, 8px);
+
+    border: 1px solid rgba(40, 127, 177, 0.55);
+    border-radius: 10px;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(232, 250, 255, 0.96),
+        rgba(190, 228, 248, 0.96)
+      );
+
+    box-shadow:
+      0 7px 18px rgba(26, 92, 133, 0.20);
+
+    color: #103b54;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease,
+      visibility 180ms ease;
+  }
+
+  .forest-patch:hover .patch-description,
+  .forest-patch:focus-visible .patch-description {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
   }
 
   .forest-patch:hover .patch-label {
@@ -118,5 +198,13 @@ const displaySize = nativePatchSize * scale;
   .forest-patch:hover .ground-patch {
     transform: scale(1.02);
     filter: brightness(1.06);
+  }
+  .forest-patch {
+    cursor: pointer;
+  }
+
+  .forest-patch:focus-visible {
+    outline: 4px solid rgba(99, 200, 255, 0.9);
+    outline-offset: 5px;
   }
 </style>
