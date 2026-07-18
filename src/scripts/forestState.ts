@@ -35,14 +35,21 @@ export interface AddForestPatchInput {
   Patch_Name: string;
 
   /*
-    The dialog uses numeric values from 1 to 9.
-    The stored ForestPatchRecord converts this to "01"–"09".
+    Dialogs use numeric values from 1 to 9.
+    Stored records convert these to "01"–"09".
   */
   Patch_Style: number;
 
   Patch_Order: number;
   Hex_Q: number;
   Hex_R: number;
+  Patch_Description: string;
+}
+
+export interface UpdateForestPatchInput {
+  Patch_ID: string;
+  Patch_Name: string;
+  Patch_Style: number;
   Patch_Description: string;
 }
 
@@ -442,5 +449,185 @@ export function addForestPatch(
 
   return clonePatch(
     newPatch,
+  );
+}
+
+/* =========================================================
+   UPDATE PATCH
+   ========================================================= */
+
+function normalizePatchName(
+  patchName: string,
+): string {
+  return patchName
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase();
+}
+
+function validatePatchUpdate(
+  input: UpdateForestPatchInput,
+): void {
+  const patchId =
+    input.Patch_ID.trim();
+
+  const patchName =
+    input.Patch_Name
+      .trim()
+      .replace(/\s+/g, " ");
+
+  if (!patchId) {
+    throw new Error(
+      "Patch ID is required.",
+    );
+  }
+
+  if (!patchName) {
+    throw new Error(
+      "Patch name is required.",
+    );
+  }
+
+  if (patchName.length > 50) {
+    throw new Error(
+      "Patch names cannot exceed 50 characters.",
+    );
+  }
+
+  if (
+    input.Patch_Description.trim()
+      .length > 250
+  ) {
+    throw new Error(
+      "Patch descriptions cannot exceed 250 characters.",
+    );
+  }
+
+  if (
+    !Number.isInteger(
+      input.Patch_Style,
+    ) ||
+    input.Patch_Style < 1 ||
+    input.Patch_Style > 9
+  ) {
+    throw new Error(
+      "Patch style must be an integer from 1 to 9.",
+    );
+  }
+
+  const patchExists =
+    forestPatches.some(
+      (patch) =>
+        patch.Patch_ID ===
+        patchId,
+    );
+
+  if (!patchExists) {
+    throw new Error(
+      `Patch "${patchId}" was not found.`,
+    );
+  }
+
+  const normalizedName =
+    normalizePatchName(
+      patchName,
+    );
+
+  const duplicateName =
+    forestPatches.some(
+      (patch) =>
+        patch.Patch_ID !==
+          patchId &&
+        normalizePatchName(
+          patch.Patch_Name,
+        ) ===
+          normalizedName,
+    );
+
+  if (duplicateName) {
+    throw new Error(
+      "A patch with this name already exists.",
+    );
+  }
+}
+
+export function updateForestPatch(
+  input: UpdateForestPatchInput,
+): ForestPatchRecord {
+  validatePatchUpdate(
+    input,
+  );
+
+  const patchId =
+    input.Patch_ID.trim();
+
+  const patchIndex =
+    forestPatches.findIndex(
+      (patch) =>
+        patch.Patch_ID ===
+        patchId,
+    );
+
+  if (patchIndex < 0) {
+    throw new Error(
+      `Patch "${patchId}" was not found.`,
+    );
+  }
+
+  const existingPatch =
+    forestPatches[
+      patchIndex
+    ];
+
+  const updatedPatch:
+    ForestPatchRecord = {
+    ...existingPatch,
+
+    Patch_Name:
+      input.Patch_Name
+        .trim()
+        .replace(/\s+/g, " "),
+
+    Patch_Style:
+      String(
+        input.Patch_Style,
+      ).padStart(2, "0"),
+
+    Patch_Description:
+      input.Patch_Description.trim(),
+
+    Last_Updated:
+      getCurrentDate(),
+  };
+
+  forestPatches[
+    patchIndex
+  ] = updatedPatch;
+
+  dispatchForestStateChanged(
+    "patch-updated",
+  );
+
+  window.dispatchEvent(
+    new CustomEvent(
+      "forest:patch-updated",
+      {
+        detail: {
+          patch:
+            clonePatch(
+              updatedPatch,
+            ),
+        },
+      },
+    ),
+  );
+
+  console.log(
+    "Forest patch updated in browser state:",
+    updatedPatch,
+  );
+
+  return clonePatch(
+    updatedPatch,
   );
 }

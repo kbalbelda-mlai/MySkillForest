@@ -1,0 +1,1460 @@
+---
+import stylesData from "../../data/styles.json";
+
+const patchStyles =
+  Object.entries(
+    stylesData.styles,
+  )
+    .map(
+      ([
+        styleKey,
+        styleValue,
+      ]) => {
+        const styleNumber =
+          Number(styleKey);
+
+        return {
+          styleNumber,
+
+          styleCode:
+            String(styleNumber)
+              .padStart(2, "0"),
+
+          styleName:
+            styleValue.name ??
+            `Style ${styleKey}`,
+        };
+      },
+    )
+    .filter(
+      (style) =>
+        Number.isInteger(
+          style.styleNumber,
+        ) &&
+        style.styleNumber >= 1 &&
+        style.styleNumber <= 9,
+    )
+    .sort(
+      (
+        firstStyle,
+        secondStyle,
+      ) =>
+        firstStyle.styleNumber -
+        secondStyle.styleNumber,
+    );
+---
+
+<div
+  class="edit-patch-overlay"
+  aria-hidden="true"
+  data-edit-patch-overlay
+>
+  <section
+    class="edit-patch-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="edit-patch-title"
+    aria-describedby="edit-patch-description"
+  >
+    <header class="dialog-header">
+      <div>
+        <p class="dialog-eyebrow">
+          Patch Inspector
+        </p>
+
+        <h2 id="edit-patch-title">
+          Edit Patch
+        </h2>
+
+        <p
+          id="edit-patch-description"
+          class="dialog-description"
+        >
+          Update the patch name, terrain style, or description.
+        </p>
+      </div>
+
+      <button
+        class="dialog-close-button"
+        type="button"
+        aria-label="Close Edit Patch dialog"
+        data-close-edit-patch
+      >
+        ×
+      </button>
+    </header>
+
+    <form
+      class="edit-patch-form"
+      novalidate
+      data-edit-patch-form
+    >
+      <input
+        type="hidden"
+        data-edit-patch-id
+      />
+
+      <div class="form-field">
+        <div class="field-heading">
+          <label for="edit-patch-name">
+            Patch name
+          </label>
+
+          <span
+            class="character-count"
+            data-edit-patch-name-count
+          >
+            0 / 50
+          </span>
+        </div>
+
+        <input
+          id="edit-patch-name"
+          type="text"
+          maxlength="50"
+          autocomplete="off"
+          required
+          data-edit-patch-name
+        />
+
+        <p
+          class="field-error"
+          data-edit-patch-name-error
+          hidden
+        ></p>
+      </div>
+
+      <fieldset class="style-fieldset">
+        <legend>
+          Patch style
+        </legend>
+
+        <div class="style-options">
+          {
+            patchStyles.map(
+              (style) => (
+                <label
+                  class="style-option"
+                  data-edit-style-option
+                >
+                  <input
+                    type="radio"
+                    name="edit-patch-style"
+                    value={
+                      style.styleNumber
+                    }
+                    data-edit-patch-style
+                  />
+
+                  <span class="style-preview">
+                    <img
+                      src={`/assets/grounds/Ground_${style.styleCode}.png`}
+                      alt=""
+                      aria-hidden="true"
+                      draggable="false"
+                    />
+                  </span>
+
+                  <span class="style-name">
+                    {style.styleName}
+                  </span>
+                </label>
+              ),
+            )
+          }
+        </div>
+
+        <p
+          class="field-error"
+          data-edit-patch-style-error
+          hidden
+        ></p>
+      </fieldset>
+
+      <div class="form-field">
+        <div class="field-heading">
+          <label for="edit-patch-description-input">
+            Patch description
+          </label>
+
+          <span
+            class="character-count"
+            data-edit-patch-description-count
+          >
+            0 / 250
+          </span>
+        </div>
+
+        <textarea
+          id="edit-patch-description-input"
+          rows="4"
+          maxlength="250"
+          data-edit-patch-description
+        ></textarea>
+
+        <p
+          class="field-error"
+          data-edit-patch-description-error
+          hidden
+        ></p>
+      </div>
+
+      <p
+        class="form-status"
+        role="status"
+        aria-live="polite"
+        data-edit-patch-status
+        hidden
+      ></p>
+
+      <footer class="dialog-actions">
+        <button
+          class="secondary-button"
+          type="button"
+          data-cancel-edit-patch
+        >
+          Cancel
+        </button>
+
+        <button
+          class="primary-button"
+          type="submit"
+          data-save-edit-patch
+        >
+          Save Changes
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+
+<style>
+  .edit-patch-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+
+    display: grid;
+    place-items: center;
+
+    padding: 30px;
+
+    background:
+      rgba(
+        5,
+        30,
+        42,
+        0.62
+      );
+
+    backdrop-filter:
+      blur(3px);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+      opacity 180ms ease,
+      visibility 180ms ease;
+  }
+
+  .edit-patch-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .edit-patch-dialog {
+    width:
+      min(
+        820px,
+        94vw
+      );
+
+    max-height:
+      min(
+        780px,
+        92vh
+      );
+
+    overflow-y: auto;
+
+    padding: 28px;
+
+    border:
+      1px solid
+      rgba(
+        19,
+        73,
+        94,
+        0.22
+      );
+
+    border-radius: 24px;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        0.985
+      );
+
+    box-shadow:
+      0 30px 90px
+      rgba(
+        0,
+        0,
+        0,
+        0.42
+      );
+
+    transform:
+      translateY(16px)
+      scale(0.96);
+
+    transition:
+      transform 220ms
+      cubic-bezier(
+        0.34,
+        1.22,
+        0.64,
+        1
+      );
+  }
+
+  .edit-patch-overlay.is-open
+  .edit-patch-dialog {
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  .dialog-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 24px;
+
+    margin-bottom: 24px;
+  }
+
+  .dialog-eyebrow {
+    margin:
+      0 0 5px;
+
+    color: #458099;
+
+    font-size: 12px;
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .dialog-header h2 {
+    margin: 0;
+
+    color: #123f52;
+
+    font-size:
+      clamp(
+        27px,
+        4vw,
+        38px
+      );
+  }
+
+  .dialog-description {
+    margin:
+      8px 0 0;
+
+    color: #5a7782;
+
+    line-height: 1.45;
+  }
+
+  .dialog-close-button {
+    width: 44px;
+    height: 44px;
+
+    flex-shrink: 0;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border:
+      1px solid
+      rgba(
+        28,
+        82,
+        103,
+        0.24
+      );
+
+    border-radius: 50%;
+
+    background:
+      rgba(
+        239,
+        248,
+        251,
+        0.98
+      );
+
+    color: #1f5b72;
+
+    cursor: pointer;
+
+    font-size: 30px;
+    line-height: 1;
+
+    transition:
+      transform 150ms ease,
+      background 150ms ease;
+  }
+
+  .dialog-close-button:hover {
+    background: #dff3fa;
+    transform: scale(1.05);
+  }
+
+  .edit-patch-form {
+    display: grid;
+    gap: 22px;
+  }
+
+  .form-field,
+  .style-fieldset {
+    min-width: 0;
+  }
+
+  .field-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    margin-bottom: 8px;
+  }
+
+  label,
+  legend {
+    color: #153f50;
+
+    font-weight: 800;
+  }
+
+  .character-count {
+    color: #68818a;
+
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  input[type="text"],
+  textarea {
+    width: 100%;
+
+    padding: 12px 14px;
+
+    border:
+      1px solid
+      rgba(
+        33,
+        91,
+        113,
+        0.30
+      );
+
+    border-radius: 10px;
+
+    background: white;
+
+    color: #173f50;
+
+    outline: none;
+
+    resize: vertical;
+
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  input[type="text"]:focus,
+  textarea:focus {
+    border-color: #3a9dc5;
+
+    box-shadow:
+      0 0 0 3px
+      rgba(
+        58,
+        157,
+        197,
+        0.16
+      );
+  }
+
+  .style-fieldset {
+    margin: 0;
+    padding: 0;
+
+    border: 0;
+  }
+
+  .style-fieldset legend {
+    margin-bottom: 10px;
+  }
+
+  .style-options {
+    display: grid;
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap: 10px;
+  }
+
+  .style-option {
+    position: relative;
+
+    display: grid;
+    grid-template-columns:
+      58px
+      minmax(
+        0,
+        1fr
+      );
+
+    align-items: center;
+
+    gap: 10px;
+
+    min-width: 0;
+
+    padding: 8px;
+
+    border:
+      2px solid
+      transparent;
+
+    border-radius: 12px;
+
+    background:
+      rgba(
+        239,
+        248,
+        251,
+        0.78
+      );
+
+    cursor: pointer;
+
+    transition:
+      border-color 150ms ease,
+      background 150ms ease,
+      transform 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .style-option:hover {
+    transform:
+      translateY(-1px);
+
+    background:
+      rgba(
+        225,
+        244,
+        251,
+        0.96
+      );
+  }
+
+  .style-option:has(
+    input:checked
+  ) {
+    border-color: #389dca;
+
+    background:
+      rgba(
+        218,
+        243,
+        253,
+        0.98
+      );
+
+    box-shadow:
+      0 0 0 3px
+      rgba(
+        56,
+        157,
+        202,
+        0.14
+      );
+  }
+
+  .style-option input {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    opacity: 0;
+  }
+
+  .style-preview {
+    width: 58px;
+    height: 58px;
+
+    display: grid;
+    place-items: center;
+
+    overflow: hidden;
+
+    border-radius: 9px;
+
+    background:
+      rgba(
+        184,
+        220,
+        232,
+        0.72
+      );
+  }
+
+  .style-preview img {
+    width: 92%;
+    height: 92%;
+
+    object-fit: contain;
+
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .style-name {
+    min-width: 0;
+
+    overflow-wrap: anywhere;
+
+    color: #214d5f;
+
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.25;
+  }
+
+  .field-error,
+  .form-status {
+    margin:
+      7px 0 0;
+
+    color: #a33d3d;
+
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .field-error[hidden],
+  .form-status[hidden] {
+    display: none !important;
+  }
+
+  .form-status.is-success {
+    color: #287047;
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    padding-top: 4px;
+  }
+
+  .dialog-actions button {
+    min-height: 42px;
+
+    padding:
+      9px 17px;
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    font-weight: 800;
+
+    transition:
+      transform 150ms ease,
+      box-shadow 150ms ease,
+      opacity 150ms ease;
+  }
+
+  .secondary-button {
+    border:
+      1px solid
+      rgba(
+        32,
+        91,
+        113,
+        0.27
+      );
+
+    background:
+      rgba(
+        241,
+        249,
+        252,
+        0.98
+      );
+
+    color: #1e5368;
+  }
+
+  .primary-button {
+    border:
+      1px solid #125875;
+
+    background: #176887;
+
+    color: white;
+  }
+
+  .dialog-actions button:hover:not(:disabled) {
+    transform:
+      translateY(-1px);
+
+    box-shadow:
+      0 7px 17px
+      rgba(
+        20,
+        80,
+        105,
+        0.18
+      );
+  }
+
+  .dialog-actions button:active:not(:disabled) {
+    transform:
+      translateY(1px)
+      scale(0.97);
+  }
+
+  .dialog-actions button:disabled {
+    opacity: 0.52;
+    cursor: wait;
+  }
+
+  button:focus-visible,
+  .style-option:has(
+    input:focus-visible
+  ) {
+    outline:
+      3px solid
+      rgba(
+        62,
+        171,
+        218,
+        0.78
+      );
+
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 690px) {
+    .edit-patch-overlay {
+      padding: 16px;
+    }
+
+    .edit-patch-dialog {
+      padding: 21px;
+    }
+
+    .style-options {
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(
+            0,
+            1fr
+          )
+        );
+    }
+  }
+
+  @media (max-width: 440px) {
+    .style-options {
+      grid-template-columns: 1fr;
+    }
+
+    .dialog-actions {
+      flex-direction: column-reverse;
+    }
+
+    .dialog-actions button {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  import {
+    getForestPatchById,
+    updateForestPatch,
+  } from "../../scripts/forestState";
+
+  import type {
+    ForestPatchRecord,
+  } from "../../scripts/loadForestData";
+
+  interface EditPatchRequestDetail {
+    patchId: string;
+  }
+
+  interface PatchApiSuccess {
+    success: true;
+    patch: ForestPatchRecord;
+  }
+
+  interface PatchApiError {
+    success: false;
+    message: string;
+    field?: string;
+  }
+
+  const overlay =
+    document.querySelector<HTMLElement>(
+      "[data-edit-patch-overlay]",
+    );
+
+  const form =
+    overlay?.querySelector<HTMLFormElement>(
+      "[data-edit-patch-form]",
+    );
+
+  const closeButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      "[data-close-edit-patch]",
+    );
+
+  const cancelButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      "[data-cancel-edit-patch]",
+    );
+
+  const saveButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      "[data-save-edit-patch]",
+    );
+
+  const patchIdInput =
+    overlay?.querySelector<HTMLInputElement>(
+      "[data-edit-patch-id]",
+    );
+
+  const nameInput =
+    overlay?.querySelector<HTMLInputElement>(
+      "[data-edit-patch-name]",
+    );
+
+  const descriptionInput =
+    overlay?.querySelector<HTMLTextAreaElement>(
+      "[data-edit-patch-description]",
+    );
+
+  const styleInputs =
+    Array.from(
+      overlay?.querySelectorAll<HTMLInputElement>(
+        "[data-edit-patch-style]",
+      ) ?? [],
+    );
+
+  const nameCount =
+    overlay?.querySelector<HTMLElement>(
+      "[data-edit-patch-name-count]",
+    );
+
+  const descriptionCount =
+    overlay?.querySelector<HTMLElement>(
+      "[data-edit-patch-description-count]",
+    );
+
+  const nameError =
+    overlay?.querySelector<HTMLElement>(
+      "[data-edit-patch-name-error]",
+    );
+
+  const styleError =
+    overlay?.querySelector<HTMLElement>(
+      "[data-edit-patch-style-error]",
+    );
+
+  const descriptionError =
+    overlay?.querySelector<HTMLElement>(
+      "[data-edit-patch-description-error]",
+    );
+
+  const formStatus =
+    overlay?.querySelector<HTMLElement>(
+      "[data-edit-patch-status]",
+    );
+
+  let triggerButton:
+    HTMLElement | null = null;
+
+  let originalPatch:
+    ForestPatchRecord | null =
+      null;
+
+  function updateCounts() {
+    if (
+      nameInput &&
+      nameCount
+    ) {
+      nameCount.textContent =
+        `${nameInput.value.length} / 50`;
+    }
+
+    if (
+      descriptionInput &&
+      descriptionCount
+    ) {
+      descriptionCount.textContent =
+        `${descriptionInput.value.length} / 250`;
+    }
+  }
+
+  function clearErrors() {
+    [
+      nameError,
+      styleError,
+      descriptionError,
+    ].forEach(
+      (element) => {
+        if (!element) {
+          return;
+        }
+
+        element.textContent = "";
+        element.hidden = true;
+      },
+    );
+
+    if (formStatus) {
+      formStatus.textContent = "";
+      formStatus.hidden = true;
+
+      formStatus.classList.remove(
+        "is-success",
+      );
+    }
+  }
+
+  function showFieldError(
+    field: string | undefined,
+    message: string,
+  ) {
+    const target =
+      field === "Patch_Name"
+        ? nameError
+        : field ===
+            "Patch_Style"
+          ? styleError
+          : field ===
+              "Patch_Description"
+            ? descriptionError
+            : null;
+
+    if (target) {
+      target.textContent =
+        message;
+
+      target.hidden = false;
+
+      return;
+    }
+
+    if (formStatus) {
+      formStatus.textContent =
+        message;
+
+      formStatus.hidden = false;
+    }
+  }
+
+  function setSubmitting(
+    submitting: boolean,
+  ) {
+    if (saveButton) {
+      saveButton.disabled =
+        submitting;
+
+      saveButton.textContent =
+        submitting
+          ? "Saving..."
+          : "Save Changes";
+    }
+
+    if (cancelButton) {
+      cancelButton.disabled =
+        submitting;
+    }
+
+    if (closeButton) {
+      closeButton.disabled =
+        submitting;
+    }
+  }
+
+  function closeDialog() {
+    if (!overlay) {
+      return;
+    }
+
+    overlay.classList.remove(
+      "is-open",
+    );
+
+    overlay.setAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    clearErrors();
+
+    originalPatch = null;
+
+    triggerButton?.focus({
+      preventScroll: true,
+    });
+
+    triggerButton = null;
+
+    console.log(
+      "Edit Patch dialog closed.",
+    );
+  }
+
+  function openDialog(
+    patchId: string,
+  ) {
+    if (
+      !overlay ||
+      !form ||
+      !patchIdInput ||
+      !nameInput ||
+      !descriptionInput
+    ) {
+      return;
+    }
+
+    const patch =
+      getForestPatchById(
+        patchId,
+      );
+
+    if (!patch) {
+      console.error(
+        "Edit Patch could not find the requested patch:",
+        patchId,
+      );
+
+      return;
+    }
+
+    originalPatch =
+      patch;
+
+    triggerButton =
+      document.activeElement instanceof
+        HTMLElement
+        ? document.activeElement
+        : null;
+
+    form.reset();
+
+    patchIdInput.value =
+      patch.Patch_ID;
+
+    nameInput.value =
+      patch.Patch_Name;
+
+    descriptionInput.value =
+      patch.Patch_Description;
+
+    const styleNumber =
+      Number(
+        patch.Patch_Style,
+      );
+
+    styleInputs.forEach(
+      (input) => {
+        input.checked =
+          Number(
+            input.value,
+          ) ===
+          styleNumber;
+      },
+    );
+
+    clearErrors();
+    updateCounts();
+
+    overlay.classList.add(
+      "is-open",
+    );
+
+    overlay.setAttribute(
+      "aria-hidden",
+      "false",
+    );
+
+    window.requestAnimationFrame(
+      () => {
+        nameInput.focus({
+          preventScroll: true,
+        });
+
+        nameInput.select();
+      },
+    );
+
+    console.log(
+      "Edit Patch dialog opened:",
+      {
+        patchId,
+      },
+    );
+  }
+
+  function validateForm():
+    | {
+        isValid: true;
+        patchName: string;
+        patchStyle: number;
+        patchDescription: string;
+      }
+    | {
+        isValid: false;
+      } {
+    clearErrors();
+
+    const patchName =
+      nameInput?.value
+        .trim()
+        .replace(/\s+/g, " ") ??
+      "";
+
+    const patchDescription =
+      descriptionInput?.value.trim() ??
+      "";
+
+    const selectedStyle =
+      styleInputs.find(
+        (input) =>
+          input.checked,
+      );
+
+    if (!patchName) {
+      showFieldError(
+        "Patch_Name",
+        "Enter a patch name.",
+      );
+
+      nameInput?.focus();
+
+      return {
+        isValid: false,
+      };
+    }
+
+    if (
+      patchName.length > 50
+    ) {
+      showFieldError(
+        "Patch_Name",
+        "Patch names cannot exceed 50 characters.",
+      );
+
+      return {
+        isValid: false,
+      };
+    }
+
+    if (!selectedStyle) {
+      showFieldError(
+        "Patch_Style",
+        "Choose a patch style.",
+      );
+
+      return {
+        isValid: false,
+      };
+    }
+
+    if (
+      patchDescription.length > 250
+    ) {
+      showFieldError(
+        "Patch_Description",
+        "Patch descriptions cannot exceed 250 characters.",
+      );
+
+      return {
+        isValid: false,
+      };
+    }
+
+    return {
+      isValid: true,
+      patchName,
+      patchStyle:
+        Number(
+          selectedStyle.value,
+        ),
+      patchDescription,
+    };
+  }
+
+  async function submitEdit(
+    event: SubmitEvent,
+  ) {
+    event.preventDefault();
+
+    if (
+      !originalPatch ||
+      !patchIdInput
+    ) {
+      return;
+    }
+
+    const validation =
+      validateForm();
+
+    if (!validation.isValid) {
+      return;
+    }
+
+    const updatedDate =
+      new Date()
+        .toISOString()
+        .slice(0, 10);
+
+    const patchForServer:
+      ForestPatchRecord = {
+      ...originalPatch,
+
+      Patch_Name:
+        validation.patchName,
+
+      Patch_Style:
+        String(
+          validation.patchStyle,
+        ).padStart(2, "0"),
+
+      Patch_Description:
+        validation.patchDescription,
+
+      Last_Updated:
+        updatedDate,
+    };
+
+    setSubmitting(
+      true,
+    );
+
+    try {
+      const response =
+        await fetch(
+          "/api/patches",
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                patch:
+                  patchForServer,
+              }),
+          },
+        );
+
+      let responseBody:
+        | PatchApiSuccess
+        | PatchApiError;
+
+      try {
+        responseBody =
+          await response.json() as
+            | PatchApiSuccess
+            | PatchApiError;
+      } catch {
+        throw new Error(
+          "The server returned an invalid response.",
+        );
+      }
+
+      if (
+        !response.ok ||
+        !responseBody.success
+      ) {
+        const errorBody =
+          responseBody as
+            PatchApiError;
+
+        showFieldError(
+          errorBody.field,
+          errorBody.message ||
+          "The patch could not be updated.",
+        );
+
+        return;
+      }
+
+      const savedPatch =
+        responseBody.patch;
+
+      updateForestPatch({
+        Patch_ID:
+          savedPatch.Patch_ID,
+
+        Patch_Name:
+          savedPatch.Patch_Name,
+
+        Patch_Style:
+          Number(
+            savedPatch.Patch_Style,
+          ),
+
+        Patch_Description:
+          savedPatch.Patch_Description,
+      });
+
+      if (formStatus) {
+        formStatus.textContent =
+          "Patch updated successfully.";
+
+        formStatus.hidden = false;
+
+        formStatus.classList.add(
+          "is-success",
+        );
+      }
+
+      window.setTimeout(
+        closeDialog,
+        220,
+      );
+
+      console.log(
+        "Edit Patch saved:",
+        savedPatch,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "The patch could not be updated.";
+
+      showFieldError(
+        undefined,
+        message,
+      );
+
+      console.error(
+        "Edit Patch failed:",
+        error,
+      );
+    } finally {
+      setSubmitting(
+        false,
+      );
+    }
+  }
+
+  window.addEventListener(
+    "patch-inspector:edit-patch",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<
+          EditPatchRequestDetail
+        >;
+
+      const patchId =
+        customEvent.detail
+          ?.patchId
+          ?.trim();
+
+      if (!patchId) {
+        return;
+      }
+
+      openDialog(
+        patchId,
+      );
+    },
+  );
+
+  form?.addEventListener(
+    "submit",
+    submitEdit,
+  );
+
+  nameInput?.addEventListener(
+    "input",
+    updateCounts,
+  );
+
+  descriptionInput?.addEventListener(
+    "input",
+    updateCounts,
+  );
+
+  closeButton?.addEventListener(
+    "click",
+    closeDialog,
+  );
+
+  cancelButton?.addEventListener(
+    "click",
+    closeDialog,
+  );
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key !== "Escape" ||
+        !overlay?.classList.contains(
+          "is-open",
+        )
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      closeDialog();
+    },
+    true,
+  );
+</script>

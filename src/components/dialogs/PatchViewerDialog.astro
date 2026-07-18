@@ -34,6 +34,80 @@ const {
         class="patch-preview-canvas"
         data-patch-preview-canvas
       ></div>
+
+      <div
+        class="patch-inspector-actions"
+        role="toolbar"
+        aria-label="Patch inspector actions"
+        aria-hidden="true"
+        data-patch-inspector-actions
+      >
+        <button
+          class="patch-inspector-action"
+          type="button"
+          aria-label="Edit Patch"
+          title="Edit Patch"
+          data-tooltip="Edit Patch"
+          data-patch-action="edit-patch"
+        >
+          <img
+            src="/assets/ui/Button_Edit_Patch.png"
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+        </button>
+
+        <button
+          class="patch-inspector-action"
+          type="button"
+          aria-label="Plant a Tree"
+          title="Plant a Tree"
+          data-tooltip="Plant a Tree"
+          data-patch-action="plant-tree"
+        >
+          <img
+            src="/assets/ui/Button_Plant_Tree.png"
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+        </button>
+
+        <button
+          class="patch-inspector-action"
+          type="button"
+          aria-label="Edit a Tree"
+          title="Edit a Tree"
+          data-tooltip="Edit a Tree"
+          data-patch-action="edit-tree"
+          disabled
+        >
+          <img
+            src="/assets/ui/Button_Edit_Tree.png"
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+        </button>
+
+        <button
+          class="patch-inspector-action danger"
+          type="button"
+          aria-label="Chop a Tree"
+          title="Chop a Tree"
+          data-tooltip="Chop a Tree"
+          data-patch-action="chop-tree"
+          disabled
+        >
+          <img
+            src="/assets/ui/Button_Chop_Tree.png"
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+        </button>
+      </div>
     </div>
 
     <div class="patch-information-panel">
@@ -288,6 +362,265 @@ const {
   ) {
     transform: none !important;
     filter: none !important;
+  }
+
+  /* =======================================================
+     PATCH INSPECTOR ACTIONS
+     ======================================================= */
+
+  .patch-inspector-actions {
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    z-index: 7200;
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 8px;
+
+    border:
+      1px solid
+      rgba(24, 80, 102, 0.24);
+
+    border-radius: 14px;
+
+    background:
+      rgba(255, 255, 255, 0.94);
+
+    box-shadow:
+      0 10px 24px
+      rgba(16, 65, 84, 0.22);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transform:
+      translateY(10px)
+      scale(0.96);
+
+    pointer-events: none;
+
+    transition:
+      opacity 180ms ease,
+      visibility 180ms ease,
+      transform 220ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+
+    backdrop-filter: blur(7px);
+  }
+
+  .patch-viewer-overlay.is-planting-mode
+  .patch-inspector-actions {
+    opacity: 1;
+    visibility: visible;
+
+    transform:
+      translateY(0)
+      scale(1);
+
+    pointer-events: auto;
+  }
+
+  .patch-inspector-action {
+    position: relative;
+
+    width: 50px;
+    height: 50px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 4px;
+
+    border:
+      2px solid
+      rgba(41, 114, 143, 0.28);
+
+    border-radius: 11px;
+
+    background:
+      rgba(238, 249, 253, 0.98);
+
+    box-shadow:
+      0 4px 10px
+      rgba(21, 75, 96, 0.12);
+
+    cursor: pointer;
+
+    transition:
+      transform 150ms ease,
+      border-color 150ms ease,
+      background 150ms ease,
+      box-shadow 150ms ease,
+      opacity 150ms ease,
+      filter 150ms ease;
+  }
+
+  .patch-inspector-action img {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: contain;
+
+    border-radius: 7px;
+
+    pointer-events: none;
+
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .patch-inspector-action:hover:not(:disabled) {
+    border-color:
+      rgba(38, 143, 188, 0.82);
+
+    background:
+      rgba(221, 245, 255, 1);
+
+    box-shadow:
+      0 0 0 4px
+      rgba(57, 169, 217, 0.14),
+      0 8px 17px
+      rgba(21, 90, 120, 0.20);
+
+    transform:
+      translateY(-2px)
+      scale(1.04);
+  }
+
+  .patch-inspector-action:active:not(:disabled) {
+    transform:
+      translateY(1px)
+      scale(0.88);
+  }
+
+  .patch-inspector-action:focus-visible {
+    outline:
+      3px solid
+      rgba(61, 177, 224, 0.82);
+
+    outline-offset: 3px;
+  }
+
+  .patch-inspector-action.is-activating {
+    animation:
+      patch-action-activated
+      360ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+  }
+
+  .patch-inspector-action:disabled {
+    opacity: 0.34;
+
+    filter:
+      grayscale(0.88)
+      saturate(0.30);
+
+    cursor: not-allowed;
+
+    box-shadow: none;
+
+    transform: none;
+  }
+
+  .patch-inspector-action:disabled::after {
+    display: none;
+  }
+
+  .patch-inspector-action::after {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    z-index: 7400;
+
+    width: max-content;
+    max-width: 190px;
+
+    padding:
+      7px 10px;
+
+    border:
+      1px solid
+      rgba(30, 87, 108, 0.20);
+
+    border-radius: 8px;
+
+    background:
+      rgba(255, 255, 255, 0.98);
+
+    box-shadow:
+      0 7px 17px
+      rgba(15, 63, 81, 0.18);
+
+    color: #214b5c;
+
+    content:
+      attr(data-tooltip);
+
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.25;
+
+    white-space: nowrap;
+
+    opacity: 0;
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transform:
+      translate(-50%, 5px);
+
+    transition:
+      opacity 140ms ease,
+      visibility 140ms ease,
+      transform 140ms ease;
+  }
+
+  .patch-inspector-action:hover::after,
+  .patch-inspector-action:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+
+    transform:
+      translate(-50%, 0);
+  }
+
+  @keyframes patch-action-activated {
+    0% {
+      transform: scale(1);
+    }
+
+    42% {
+      transform:
+        scale(0.80)
+        rotate(-6deg);
+    }
+
+    72% {
+      transform:
+        scale(1.12)
+        rotate(4deg);
+    }
+
+    100% {
+      transform: scale(1);
+    }
   }
 
   /* =======================================================
@@ -686,7 +1019,27 @@ const {
      TYPES
      ======================================================= */
 
+  type ForestMode =
+    | "strolling"
+    | "planting";
+
+  type PatchInspectorAction =
+    | "edit-patch"
+    | "plant-tree"
+    | "edit-tree"
+    | "chop-tree";
+
   interface OpenPatchViewerDetail {
+    patchId: string;
+    treeId?: string;
+  }
+
+  interface ForestModeChangedDetail {
+    mode: ForestMode;
+  }
+
+  interface PatchInspectorActionDetail {
+    action: PatchInspectorAction;
     patchId: string;
     treeId?: string;
   }
@@ -725,6 +1078,38 @@ const {
       "[data-patch-preview-canvas]",
     );
 
+  const patchInspectorActions =
+    overlay?.querySelector<HTMLElement>(
+      "[data-patch-inspector-actions]",
+    );
+
+  const patchActionButtons =
+    Array.from(
+      overlay?.querySelectorAll<HTMLButtonElement>(
+        "[data-patch-action]",
+      ) ?? [],
+    );
+
+  const editPatchActionButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      '[data-patch-action="edit-patch"]',
+    );
+
+  const plantTreeActionButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      '[data-patch-action="plant-tree"]',
+    );
+
+  const editTreeActionButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      '[data-patch-action="edit-tree"]',
+    );
+
+  const chopTreeActionButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      '[data-patch-action="chop-tree"]',
+    );
+
   const treeName =
     overlay?.querySelector<HTMLElement>(
       "[data-tree-name]",
@@ -757,6 +1142,206 @@ const {
 
   let previouslyFocusedElement:
     HTMLElement | null = null;
+
+  let currentForestMode:
+    ForestMode =
+      document.body.dataset
+        .currentMode === "planting"
+        ? "planting"
+        : "strolling";
+
+  let activePatchId:
+    string | null = null;
+
+  let selectedTreeId:
+    string | null = null;
+
+  let patchActionAnimationTimeout:
+    number | undefined;
+
+  /* =======================================================
+     PATCH INSPECTOR ACTIONS
+     ======================================================= */
+
+  function updatePatchInspectorMode(
+    mode: ForestMode,
+  ) {
+    currentForestMode = mode;
+
+    const isPlantingMode =
+      mode === "planting";
+
+    overlay?.classList.toggle(
+      "is-planting-mode",
+      isPlantingMode,
+    );
+
+    patchInspectorActions?.setAttribute(
+      "aria-hidden",
+      String(!isPlantingMode),
+    );
+
+    updatePatchActionAvailability();
+
+    console.log(
+      "Patch Inspector mode updated:",
+      {
+        mode,
+      },
+    );
+  }
+
+  function updatePatchActionAvailability() {
+    const hasSelectedTree =
+      Boolean(selectedTreeId);
+
+    if (editPatchActionButton) {
+      editPatchActionButton.disabled =
+        currentForestMode !==
+          "planting" ||
+        hasSelectedTree;
+    }
+
+    if (plantTreeActionButton) {
+      plantTreeActionButton.disabled =
+        currentForestMode !==
+          "planting" ||
+        hasSelectedTree;
+    }
+
+    if (editTreeActionButton) {
+      editTreeActionButton.disabled =
+        currentForestMode !==
+          "planting" ||
+        !hasSelectedTree;
+    }
+
+    if (chopTreeActionButton) {
+      chopTreeActionButton.disabled =
+        currentForestMode !==
+          "planting" ||
+        !hasSelectedTree;
+    }
+  }
+
+  function animatePatchAction(
+    button: HTMLButtonElement,
+  ) {
+    if (
+      patchActionAnimationTimeout !==
+      undefined
+    ) {
+      window.clearTimeout(
+        patchActionAnimationTimeout,
+      );
+    }
+
+    button.classList.remove(
+      "is-activating",
+    );
+
+    void button.offsetWidth;
+
+    button.classList.add(
+      "is-activating",
+    );
+
+    patchActionAnimationTimeout =
+      window.setTimeout(
+        () => {
+          button.classList.remove(
+            "is-activating",
+          );
+        },
+        380,
+      );
+  }
+
+  function requestPatchInspectorAction(
+    action: PatchInspectorAction,
+    button: HTMLButtonElement,
+  ) {
+    if (
+      currentForestMode !==
+        "planting" ||
+      button.disabled ||
+      !activePatchId
+    ) {
+      return;
+    }
+
+    const requiresTree =
+      action === "edit-tree" ||
+      action === "chop-tree";
+
+    if (
+      requiresTree &&
+      !selectedTreeId
+    ) {
+      return;
+    }
+
+    animatePatchAction(
+      button,
+    );
+
+    const detail:
+      PatchInspectorActionDetail = {
+        action,
+        patchId:
+          activePatchId,
+      };
+
+    if (selectedTreeId) {
+      detail.treeId =
+        selectedTreeId;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent(
+        `patch-inspector:${action}`,
+        {
+          detail,
+        },
+      ),
+    );
+
+    console.log(
+      "Patch Inspector action requested:",
+      detail,
+    );
+  }
+
+  patchActionButtons.forEach(
+    (button) => {
+      button.addEventListener(
+        "click",
+        () => {
+          const action =
+            button.dataset
+              .patchAction;
+
+          if (
+            action !==
+              "edit-patch" &&
+            action !==
+              "plant-tree" &&
+            action !==
+              "edit-tree" &&
+            action !==
+              "chop-tree"
+          ) {
+            return;
+          }
+
+          requestPatchInspectorAction(
+            action,
+            button,
+          );
+        },
+      );
+    },
+  );
 
   /* =======================================================
      TREE INFORMATION
@@ -809,7 +1394,10 @@ const {
         );
       });
 
+    selectedTreeId = null;
+
     resetTreeInformation();
+    updatePatchActionAvailability();
   }
 
   function formatDate(
@@ -890,6 +1478,12 @@ const {
     tree.classList.add(
       "is-selected",
     );
+
+    selectedTreeId =
+      tree.dataset.treeId?.trim() ||
+      null;
+
+    updatePatchActionAvailability();
 
     if (treeName) {
       treeName.textContent =
@@ -998,7 +1592,7 @@ const {
 
   function openPatchViewer(
     trigger: HTMLElement,
-    selectedTreeId?: string,
+    requestedTreeId?: string,
   ) {
     if (
       !overlay ||
@@ -1006,6 +1600,19 @@ const {
     ) {
       return;
     }
+
+    activePatchId =
+      trigger.dataset.patchId?.trim() ||
+      null;
+
+    selectedTreeId = null;
+
+    updatePatchInspectorMode(
+      document.body.dataset
+        .currentMode === "planting"
+        ? "planting"
+        : "strolling",
+    );
 
     previouslyFocusedElement =
       document.activeElement instanceof
@@ -1127,10 +1734,10 @@ const {
     document.body.style.overflow =
       "hidden";
 
-    if (selectedTreeId) {
+    if (requestedTreeId) {
       const selectedTree =
         findClonedTree(
-          selectedTreeId,
+          requestedTreeId,
         );
 
       if (selectedTree) {
@@ -1140,7 +1747,7 @@ const {
         );
       } else {
         console.warn(
-          `Tree ${selectedTreeId} was not found inside patch ${trigger.dataset.patchId}.`,
+          `Tree ${requestedTreeId} was not found inside patch ${trigger.dataset.patchId}.`,
         );
 
         closeButton?.focus();
@@ -1157,7 +1764,7 @@ const {
         patchName:
           trigger.dataset.patchName,
         selectedTreeId:
-          selectedTreeId ?? null,
+          requestedTreeId ?? null,
       },
     );
   }
@@ -1178,6 +1785,11 @@ const {
       "";
 
     clearTreeSelection();
+
+    activePatchId = null;
+    selectedTreeId = null;
+
+    updatePatchActionAvailability();
 
     previouslyFocusedElement?.focus({
       preventScroll: true,
@@ -1305,6 +1917,101 @@ const {
   );
 
   /* =======================================================
+     FOREST MODE UPDATES
+     ======================================================= */
+
+  window.addEventListener(
+    "forest:mode-changed",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<
+          ForestModeChangedDetail
+        >;
+
+      const mode =
+        customEvent.detail?.mode;
+
+      if (
+        mode !== "strolling" &&
+        mode !== "planting"
+      ) {
+        return;
+      }
+
+      updatePatchInspectorMode(
+        mode,
+      );
+    },
+  );
+
+  /* =======================================================
+     PATCH UPDATE REFRESH
+     ======================================================= */
+
+  window.addEventListener(
+    "forest:patch-updated",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<{
+          patch?: {
+            Patch_ID: string;
+          };
+        }>;
+
+      const updatedPatchId =
+        customEvent.detail
+          ?.patch
+          ?.Patch_ID
+          ?.trim();
+
+      if (
+        !updatedPatchId ||
+        updatedPatchId !==
+          activePatchId ||
+        !overlay?.classList.contains(
+          "is-open",
+        )
+      ) {
+        return;
+      }
+
+      window.requestAnimationFrame(
+        () => {
+          const trigger =
+            findPatchTrigger(
+              updatedPatchId,
+            );
+
+          if (!trigger) {
+            return;
+          }
+
+          /*
+            Rebuild the open inspector from the newly updated
+            world patch while keeping the parent dialog open.
+          */
+
+          openPatchViewer(
+            trigger,
+          );
+
+          console.log(
+            "Open Patch Inspector refreshed after patch update:",
+            {
+              patchId:
+                updatedPatchId,
+            },
+          );
+        },
+      );
+    },
+  );
+
+  /* =======================================================
      CLOSE CONTROLS
      ======================================================= */
 
@@ -1313,22 +2020,17 @@ const {
     closePatchViewer,
   );
 
-  overlay?.addEventListener(
-    "click",
-    (event) => {
-      if (
-        event.target === overlay
-      ) {
-        closePatchViewer();
-      }
-    },
-  );
-
   document.addEventListener(
     "keydown",
     (event) => {
+      const childDialogOpen =
+        document.querySelector(
+          "[data-edit-patch-overlay].is-open",
+        );
+
       if (
         event.key === "Escape" &&
+        !childDialogOpen &&
         overlay?.classList.contains(
           "is-open",
         )
@@ -1336,5 +2038,9 @@ const {
         closePatchViewer();
       }
     },
+  );
+
+  updatePatchInspectorMode(
+    currentForestMode,
   );
 </script>

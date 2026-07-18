@@ -5,7 +5,9 @@ import type {
 import {
   appendForestPatchToCsv,
   readForestPatchCsv,
+  replaceForestPatchInCsv,
   validatePatchForCsv,
+  validatePatchUpdateForCsv,
 } from "../../scripts/csvWriter";
 
 import type {
@@ -18,7 +20,7 @@ export const prerender = false;
    API TYPES
    ========================================================= */
 
-interface AddPatchRequestBody {
+interface PatchRequestBody {
   patch?: unknown;
 }
 
@@ -48,7 +50,12 @@ interface ApiSuccessResponse {
 function jsonResponse(
   body:
     | ApiSuccessResponse
-    | ApiErrorResponse,
+    | ApiErrorResponse
+    | {
+        success: true;
+        patches:
+          ForestPatchRecord[];
+      },
 
   status: number,
 ): Response {
@@ -245,9 +252,7 @@ function parsePatchRecord(
     };
   }
 
-  if (
-    patchName.length > 50
-  ) {
+  if (patchName.length > 50) {
     return {
       success: false,
       message:
@@ -391,6 +396,70 @@ function parsePatchRecord(
   };
 }
 
+async function readRequestPatch(
+  request: Request,
+):
+  Promise<
+    | {
+        success: true;
+        patch:
+          ForestPatchRecord;
+      }
+    | {
+        success: false;
+        response: Response;
+      }
+  > {
+  let requestBody:
+    PatchRequestBody;
+
+  try {
+    requestBody =
+      await request.json() as
+        PatchRequestBody;
+  } catch (error) {
+    console.error(
+      "Patch API received invalid JSON:",
+      error,
+    );
+
+    return {
+      success: false,
+
+      response:
+        errorResponse(
+          "The request body must contain valid JSON.",
+          400,
+          "Request",
+        ),
+    };
+  }
+
+  const parsedPatch =
+    parsePatchRecord(
+      requestBody.patch,
+    );
+
+  if (!parsedPatch.success) {
+    return {
+      success: false,
+
+      response:
+        errorResponse(
+          parsedPatch.message,
+          400,
+          parsedPatch.field,
+        ),
+    };
+  }
+
+  return {
+    success: true,
+    patch:
+      parsedPatch.patch,
+  };
+}
+
 /* =========================================================
    POST /api/patches
    ========================================================= */
@@ -399,51 +468,22 @@ export const POST:
   APIRoute = async ({
     request,
   }) => {
-    let requestBody:
-      AddPatchRequestBody;
-
-    try {
-      requestBody =
-        await request.json() as
-          AddPatchRequestBody;
-    } catch (error) {
-      console.error(
-        "Patch API received invalid JSON:",
-        error,
+    const parsedRequest =
+      await readRequestPatch(
+        request,
       );
 
-      return errorResponse(
-        "The request body must contain valid JSON.",
-        400,
-        "Request",
-      );
-    }
-
-    const parsedPatch =
-      parsePatchRecord(
-        requestBody.patch,
-      );
-
-    if (!parsedPatch.success) {
-      return errorResponse(
-        parsedPatch.message,
-        400,
-        parsedPatch.field,
-      );
+    if (!parsedRequest.success) {
+      return parsedRequest.response;
     }
 
     try {
-      /*
-        Validate against the latest CSV contents before writing.
-        This catches duplicate names, IDs, orders and coordinates.
-      */
-
       const existingPatches =
         await readForestPatchCsv();
 
       const validation =
         validatePatchForCsv(
-          parsedPatch.patch,
+          parsedRequest.patch,
           existingPatches,
         );
 
@@ -451,22 +491,15 @@ export const POST:
         return errorResponse(
           validation.message ??
           "The patch could not be saved.",
-
           409,
-
           validation.field,
         );
       }
 
       const savedPatch =
         await appendForestPatchToCsv(
-          parsedPatch.patch,
+          parsedRequest.patch,
         );
-
-      console.log(
-        "Patch API saved patch:",
-        savedPatch,
-      );
 
       return jsonResponse(
         {
@@ -487,28 +520,102 @@ export const POST:
         error,
       );
 
-      /*
-        appendForestPatchToCsv performs its own final validation.
-        Duplicate-name errors thrown there should still be
-        displayed beneath the Patch Name field.
-      */
+      return errorResponse(
+        message,
+        500,
+        "Request",
+      );
+    }
+  };
 
-      const isDuplicateNameError =
-        message.toLocaleLowerCase()
-          .includes(
-            "name already exists",
-          ) ||
-        message.toLocaleLowerCase()
-          .includes(
-            "patch with this name",
-          );
+/* =========================================================
+   PUT /api/patches
+   ========================================================= */
+
+export const PUT:
+  APIRoute = async ({
+    request,
+  }) => {
+    const parsedRequest =
+      await readRequestPatch(
+        request,
+      );
+
+    if (!parsedRequest.success) {
+      return parsedRequest.response;
+    }
+
+    try {
+      const existingPatches =
+        await readForestPatchCsv();
+
+      const validation =
+        validatePatchUpdateForCsv(
+          parsedRequest.patch,
+          existingPatches,
+        );
+
+      if (!validation.isValid) {
+        const notFound =
+          validation.field ===
+          "Patch_ID";
+
+        return errorResponse(
+          validation.message ??
+          "The patch could not be updated.",
+          notFound
+            ? 404
+            : 409,
+          validation.field,
+        );
+      }
+
+      const savedPatch =
+        await replaceForestPatchInCsv(
+          parsedRequest.patch,
+        );
+
+      console.log(
+        "Patch API updated patch:",
+        savedPatch,
+      );
+
+      return jsonResponse(
+        {
+          success: true,
+          patch:
+            savedPatch,
+        },
+        200,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "The patch could not be updated.";
+
+      console.error(
+        "Patch API failed to update patch:",
+        error,
+      );
+
+      const normalizedMessage =
+        message.toLocaleLowerCase();
+
+      const duplicateName =
+        normalizedMessage.includes(
+          "patch with this name",
+        ) ||
+        normalizedMessage.includes(
+          "name already exists",
+        );
 
       return errorResponse(
         message,
-        isDuplicateNameError
+        duplicateName
           ? 409
           : 500,
-        isDuplicateNameError
+        duplicateName
           ? "Patch_Name"
           : "Request",
       );
@@ -516,7 +623,7 @@ export const POST:
   };
 
 /* =========================================================
-   METHOD FALLBACKS
+   GET /api/patches
    ========================================================= */
 
 export const GET:
@@ -525,22 +632,12 @@ export const GET:
       const patches =
         await readForestPatchCsv();
 
-      return new Response(
-        JSON.stringify({
+      return jsonResponse(
+        {
           success: true,
           patches,
-        }),
-        {
-          status: 200,
-
-          headers: {
-            "Content-Type":
-              "application/json; charset=utf-8",
-
-            "Cache-Control":
-              "no-store",
-          },
         },
+        200,
       );
     } catch (error) {
       console.error(

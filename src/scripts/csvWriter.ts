@@ -641,3 +641,215 @@ export async function appendForestPatchToCsv(
     ...normalizedPatch,
   };
 }
+
+/* =========================================================
+   UPDATE PATCH VALIDATION
+   ========================================================= */
+
+export function validatePatchUpdateForCsv(
+  patch: ForestPatchRecord,
+
+  existingPatches:
+    readonly ForestPatchRecord[],
+):
+  PatchValidationResult {
+  const patchId =
+    patch.Patch_ID.trim();
+
+  const patchName =
+    patch.Patch_Name.trim();
+
+  const existingPatch =
+    existingPatches.find(
+      (record) =>
+        record.Patch_ID.trim() ===
+        patchId,
+    );
+
+  if (!existingPatch) {
+    return {
+      isValid: false,
+      field: "Patch_ID",
+      message:
+        `Patch "${patchId}" was not found.`,
+    };
+  }
+
+  if (!patchName) {
+    return {
+      isValid: false,
+      field: "Patch_Name",
+      message:
+        "Enter a patch name.",
+    };
+  }
+
+  const normalizedPatchName =
+    normalizePatchName(
+      patchName,
+    );
+
+  const duplicateName =
+    existingPatches.some(
+      (record) =>
+        record.Patch_ID.trim() !==
+          patchId &&
+        normalizePatchName(
+          record.Patch_Name,
+        ) ===
+          normalizedPatchName,
+    );
+
+  if (duplicateName) {
+    return {
+      isValid: false,
+      field: "Patch_Name",
+      message:
+        "A patch with this name already exists.",
+    };
+  }
+
+  return {
+    isValid: true,
+  };
+}
+
+/* =========================================================
+   REWRITE PATCH CSV
+   ========================================================= */
+
+async function writeForestPatchRecords(
+  patches:
+    readonly ForestPatchRecord[],
+): Promise<void> {
+  await ensureForestPatchCsv();
+
+  const existingCsvText =
+    await readFile(
+      FOREST_PATCH_CSV_PATH,
+      "utf8",
+    );
+
+  const lineEnding =
+    existingCsvText.includes("\r\n")
+      ? "\r\n"
+      : "\n";
+
+  const headerRow =
+    FOREST_PATCH_HEADERS.join(
+      ",",
+    );
+
+  const dataRows =
+    patches.map(
+      createForestPatchCsvRow,
+    );
+
+  const csvText =
+    [
+      headerRow,
+      ...dataRows,
+    ].join(
+      lineEnding,
+    ) +
+    lineEnding;
+
+  await writeFile(
+    FOREST_PATCH_CSV_PATH,
+    csvText,
+    "utf8",
+  );
+}
+
+/* =========================================================
+   REPLACE PATCH
+   ========================================================= */
+
+export async function replaceForestPatchInCsv(
+  patch: ForestPatchRecord,
+): Promise<ForestPatchRecord> {
+  await ensureForestPatchCsv();
+
+  const existingPatches =
+    await readForestPatchCsv();
+
+  const validation =
+    validatePatchUpdateForCsv(
+      patch,
+      existingPatches,
+    );
+
+  if (!validation.isValid) {
+    throw new Error(
+      validation.message ??
+      "The patch could not be updated.",
+    );
+  }
+
+  const patchIndex =
+    existingPatches.findIndex(
+      (record) =>
+        record.Patch_ID.trim() ===
+        patch.Patch_ID.trim(),
+    );
+
+  if (patchIndex < 0) {
+    throw new Error(
+      `Patch "${patch.Patch_ID}" was not found.`,
+    );
+  }
+
+  const existingPatch =
+    existingPatches[
+      patchIndex
+    ];
+
+  const normalizedPatch:
+    ForestPatchRecord = {
+    ...existingPatch,
+
+    /*
+      Identity, placement, counts and creation date remain
+      server-controlled and unchanged during patch editing.
+    */
+
+    Patch_Name:
+      patch.Patch_Name
+        .trim()
+        .replace(/\s+/g, " "),
+
+    Patch_Style:
+      patch.Patch_Style
+        .trim()
+        .padStart(2, "0"),
+
+    Patch_Description:
+      patch.Patch_Description.trim(),
+
+    Last_Updated:
+      patch.Last_Updated.trim(),
+  };
+
+  existingPatches[
+    patchIndex
+  ] = normalizedPatch;
+
+  await writeForestPatchRecords(
+    existingPatches,
+  );
+
+  console.log(
+    "Forest patch replaced in CSV:",
+    {
+      path:
+        FOREST_PATCH_CSV_PATH,
+
+      patch:
+        normalizedPatch,
+    },
+  );
+
+  return {
+    ...normalizedPatch,
+  };
+}

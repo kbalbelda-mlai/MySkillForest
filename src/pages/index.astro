@@ -7,6 +7,7 @@ import ForestWorld from "../components/forest/ForestWorld.astro";
 import PatchViewerDialog from "../components/dialogs/PatchViewerDialog.astro";
 import AboutDialog from "../components/dialogs/AboutDialog.astro";
 import AddPatchDialog from "../components/dialogs/AddPatchDialog.astro";
+import EditPatchDialog from "../components/dialogs/EditPatchDialog.astro";
 
 /* =========================================================
    PAGE DATA
@@ -338,13 +339,13 @@ console.log("Index page forest data:", {
         </button>
 
         <button
-          class="patch-operation-button"
+          class="patch-operation-button danger"
           type="button"
-          data-edit-patch-button
+          data-delete-patch-button
           disabled
-          title="Select a patch to edit"
+          title="Delete Patch will be implemented in a later milestone"
         >
-          Edit Patch
+          Delete Patch
         </button>
       </div>
     </main>
@@ -353,7 +354,9 @@ console.log("Index page forest data:", {
 
     <AboutDialog />
 
-	<AddPatchDialog />
+    <AddPatchDialog />
+
+    <EditPatchDialog />
   </body>
 </html>
 
@@ -1411,6 +1414,16 @@ console.log("Index page forest data:", {
     color: white;
   }
 
+  .patch-operation-button.danger {
+    border-color:
+      rgba(150, 67, 67, 0.30);
+
+    background:
+      rgba(249, 238, 238, 0.96);
+
+    color: #8c3f3f;
+  }
+
   .patch-operation-button:hover:not(:disabled) {
     transform:
       translateY(-1px);
@@ -1662,9 +1675,9 @@ console.log("Index page forest data:", {
       "[data-add-patch-button]",
     );
 
-  const editPatchButton =
+  const deletePatchButton =
     document.querySelector<HTMLButtonElement>(
-      "[data-edit-patch-button]",
+      "[data-delete-patch-button]",
     );
 
   const searchContainer =
@@ -2154,19 +2167,16 @@ console.log("Index page forest data:", {
       );
     }
 
-    if (!isPlantingMode) {
-      /*
-        Patch selection will be implemented later. Until then,
-        Edit Patch always returns to disabled when leaving
-        Planting Mode.
-      */
-      if (editPatchButton) {
-        editPatchButton.disabled =
-          true;
+    /*
+      Delete Patch remains disabled during Milestone 6A.
+      Its deletion workflow will be implemented separately.
+    */
+    if (deletePatchButton) {
+      deletePatchButton.disabled =
+        true;
 
-        editPatchButton.title =
-          "Select a patch to edit";
-      }
+      deletePatchButton.title =
+        "Delete Patch will be implemented in a later milestone";
     }
 
     if (animate) {
@@ -2282,18 +2292,15 @@ console.log("Index page forest data:", {
     },
   );
 
-  editPatchButton?.addEventListener(
+  deletePatchButton?.addEventListener(
     "click",
     () => {
-      if (
-        currentMode !== "planting" ||
-        editPatchButton.disabled
-      ) {
-        return;
-      }
-
+      /*
+        Delete Patch intentionally remains unavailable during
+        Milestone 6A.
+      */
       console.log(
-        "Edit Patch requested.",
+        "Delete Patch is not yet available.",
       );
     },
   );
@@ -2708,6 +2715,62 @@ console.log("Index page forest data:", {
         return;
       }
 
+      if (
+        customEvent.detail
+          ?.reason ===
+        "patch-updated"
+      ) {
+        const patches =
+          customEvent.detail
+            .snapshot
+            .patches;
+
+        for (
+          const result of
+          searchResults
+        ) {
+          const patchId =
+            result.dataset
+              .patchId;
+
+          const updatedPatch =
+            patches.find(
+              (patch) =>
+                patch.Patch_ID ===
+                patchId,
+            );
+
+          if (!updatedPatch) {
+            continue;
+          }
+
+          result.dataset.patchName =
+            updatedPatch.Patch_Name;
+
+          result.dataset
+            .normalizedPatchName =
+            normalizeSearchText(
+              updatedPatch.Patch_Name,
+            );
+
+          const patchNameElement =
+            result.querySelector<HTMLElement>(
+              ".search-result-patch-name",
+            );
+
+          if (patchNameElement) {
+            patchNameElement.textContent =
+              updatedPatch.Patch_Name;
+          }
+        }
+
+        if (
+          searchInput?.value.trim()
+        ) {
+          updateSearchResults();
+        }
+      }
+
       if (patchCountElement) {
         patchCountElement.textContent =
           String(
@@ -2768,7 +2831,6 @@ console.log("Index page forest data:", {
   applyForestMode(
     "strolling",
     false,
-	false,
   );
 
   updateClearButton();

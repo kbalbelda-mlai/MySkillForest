@@ -1330,6 +1330,110 @@ console.log(
   }
 
   /* =======================================================
+     DYNAMIC PATCH UPDATE
+     ======================================================= */
+
+  function updatePatchInWorld(
+    patch: ForestPatchRecord,
+  ) {
+    const patchElement =
+      forestWorld.querySelector<HTMLElement>(
+        `[data-patch-id="${CSS.escape(
+          patch.Patch_ID,
+        )}"]`,
+      );
+
+    if (!patchElement) {
+      console.warn(
+        "The patch to update was not found in the forest world:",
+        patch.Patch_ID,
+      );
+
+      return;
+    }
+
+    const normalizedStyle =
+      normalizeStyle(
+        patch.Patch_Style,
+      );
+
+    patchElement.dataset.patchName =
+      patch.Patch_Name;
+
+    patchElement.dataset.patchStyle =
+      normalizedStyle;
+
+    patchElement.dataset.patchDescription =
+      patch.Patch_Description;
+
+    patchElement.dataset.patchSaplings =
+      String(
+        patch.Saplings_Planted,
+      );
+
+    patchElement.dataset.patchTrees =
+      String(
+        patch.Trees_Grown,
+      );
+
+    const groundImage =
+      patchElement.querySelector<HTMLImageElement>(
+        ".ground-patch",
+      );
+
+    if (groundImage) {
+      groundImage.src =
+        `/assets/grounds/Ground_${normalizedStyle}.png`;
+
+      groundImage.alt =
+        patch.Patch_Name;
+    }
+
+    const patchLabel =
+      patchElement.querySelector<HTMLElement>(
+        ".patch-label",
+      );
+
+    if (patchLabel) {
+      patchLabel.textContent =
+        patch.Patch_Name;
+    }
+
+    const patchDescription =
+      patchElement.querySelector<HTMLElement>(
+        ".patch-description",
+      );
+
+    if (patchDescription) {
+      patchDescription.textContent =
+        patch.Patch_Description ||
+        "No patch description has been provided.";
+    }
+
+    patchElement.classList.remove(
+      "is-newly-added",
+    );
+
+    patchElement.classList.add(
+      "is-newly-updated",
+    );
+
+    window.setTimeout(
+      () => {
+        patchElement.classList.remove(
+          "is-newly-updated",
+        );
+      },
+      620,
+    );
+
+    console.log(
+      "Forest patch display updated:",
+      patch,
+    );
+  }
+
+  /* =======================================================
      FOREST STATE EVENTS
      ======================================================= */
 
@@ -1346,29 +1450,46 @@ console.log(
       const detail =
         customEvent.detail;
 
-      if (
-        !detail ||
-        detail.reason !==
-          "patch-added"
-      ) {
+      if (!detail) {
         return;
       }
 
       const patches =
         detail.snapshot.patches;
 
-      const newestPatch =
-        patches[
-          patches.length - 1
-        ];
+      if (
+        detail.reason ===
+        "patch-added"
+      ) {
+        const newestPatch =
+          patches[
+            patches.length - 1
+          ];
 
-      if (!newestPatch) {
+        if (!newestPatch) {
+          return;
+        }
+
+        addPatchToWorld(
+          newestPatch,
+        );
+
         return;
       }
 
-      addPatchToWorld(
-        newestPatch,
-      );
+      if (
+        detail.reason ===
+        "patch-updated"
+      ) {
+        for (
+          const patch of
+          patches
+        ) {
+          updatePatchInWorld(
+            patch,
+          );
+        }
+      }
     },
   );
 
@@ -1721,6 +1842,60 @@ console.log(
           -50%
         )
         scale(1);
+    }
+  }
+
+  /* =======================================================
+     UPDATED PATCH ANIMATION
+     ======================================================= */
+
+  .forest-stage
+  :global(
+    .forest-patch.is-newly-updated
+    .ground-patch
+  ) {
+    animation:
+      patch-updated
+      560ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+  }
+
+  @keyframes patch-updated {
+    0% {
+      filter:
+        brightness(1)
+        drop-shadow(
+          0 0 0
+          transparent
+        );
+    }
+
+    52% {
+      filter:
+        brightness(1.12)
+        drop-shadow(
+          0 0 18px
+          rgba(
+            77,
+            201,
+            238,
+            0.88
+          )
+        );
+    }
+
+    100% {
+      filter:
+        brightness(1)
+        drop-shadow(
+          0 0 0
+          transparent
+        );
     }
   }
 
