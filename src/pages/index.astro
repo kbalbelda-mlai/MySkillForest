@@ -6,6 +6,7 @@ import {
 import ForestWorld from "../components/forest/ForestWorld.astro";
 import PatchViewerDialog from "../components/dialogs/PatchViewerDialog.astro";
 import AboutDialog from "../components/dialogs/AboutDialog.astro";
+import AddPatchDialog from "../components/dialogs/AddPatchDialog.astro";
 
 /* =========================================================
    PAGE DATA
@@ -40,9 +41,26 @@ console.log("Index page forest data:", {
     <title>{pageTitle}</title>
   </head>
 
-  <body>
+  <body data-current-mode="strolling">
+    <script
+      id="initial-forest-patches"
+      type="application/json"
+      set:html={JSON.stringify(forestPatches)}
+    ></script>
+
+    <script
+      id="initial-forest-trees"
+      type="application/json"
+      set:html={JSON.stringify(trees)}
+    ></script>
+
     <header class="header-ribbon">
-      <div class="mode-button">
+
+      <div
+        class="mode-indicator"
+        data-mode-indicator
+        aria-live="polite"
+      >
         Strolling Mode
       </div>
 
@@ -172,30 +190,170 @@ console.log("Index page forest data:", {
         class="forest-stats"
         aria-label="Forest statistics"
       >
-        <span>
-          <strong>Patches:</strong>
-          {statistics.patchCount}
-        </span>
+		<span>
+  		  <strong>Patches:</strong>
+
+  		  <span data-patch-count>
+    		{statistics.patchCount}
+  		  </span>
+		</span>
 
         <span>
           <strong>Saplings:</strong>
-          {statistics.saplingCount}
+          <span data-sapling-count>
+		    {statistics.saplingCount}
+		  </span>
         </span>
 
         <span>
           <strong>Trees:</strong>
-          {statistics.treeCount}
-        </span>
+          <span data-tree-count>
+		    {statistics.treeCount}
+          </span>
+		</span>
       </div>
     </header>
 
     <main class="forest-viewport">
       <ForestWorld />
+
+      <!-- =================================================
+           MODE TOGGLE
+           ================================================= -->
+
+      <div class="left-control-area">
+        <!-- ===============================================
+             STROLLING / PLANTING MODE
+             =============================================== -->
+      
+        <div class="mode-toggle-area">
+          <button
+            class="mode-toggle-button"
+            type="button"
+            aria-label="Switch to Planting Mode"
+            aria-pressed="false"
+            title="Switch to Planting Mode"
+            data-mode-toggle
+          >
+            <span class="mode-toggle-image-frame">
+              <img
+                class="mode-toggle-image is-visible"
+                src="/assets/ui/Mode_Button_Stroll.png"
+                alt=""
+                aria-hidden="true"
+                draggable="false"
+                data-mode-image-stroll
+              />
+      
+              <img
+                class="mode-toggle-image"
+                src="/assets/ui/Mode_Button_Plant.png"
+                alt=""
+                aria-hidden="true"
+                draggable="false"
+                data-mode-image-plant
+              />
+            </span>
+          </button>
+      
+          <div
+            class="mode-toggle-label"
+            data-mode-toggle-label
+          >
+            Switch to Planting
+          </div>
+        </div>
+      
+        <!-- ===============================================
+             INTERACTION TOOLS
+             =============================================== -->
+      
+        <div
+          class="interaction-tools"
+          role="toolbar"
+          aria-label="Forest interaction tools"
+        >
+          <button
+            class="interaction-tool-button is-selected"
+            type="button"
+            aria-label="Cursor tool"
+            aria-pressed="true"
+            title="Cursor Tool"
+            data-tooltip="Cursor Tool"
+            data-interaction-tool="cursor"
+          >
+            <img
+              src="/assets/ui/Tool_Cursor.png"
+              alt=""
+              aria-hidden="true"
+              draggable="false"
+            />
+      
+            <span
+              class="tool-active-indicator"
+              aria-hidden="true"
+            ></span>
+          </button>
+      
+          <button
+            class="interaction-tool-button"
+            type="button"
+            aria-label="Pan tool. Hold Shift to temporarily pan."
+            aria-pressed="false"
+            title="Pan Tool — Hold Shift to temporarily pan"
+            data-tooltip="Hold Shift Key to autoselect Pan"
+            data-interaction-tool="pan"
+          >
+            <img
+              src="/assets/ui/Tool_Pan.png"
+              alt=""
+              aria-hidden="true"
+              draggable="false"
+            />
+      
+            <span
+              class="tool-active-indicator"
+              aria-hidden="true"
+            ></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- =================================================
+           PATCH OPERATIONS
+           ================================================= -->
+
+      <div
+        class="patch-operations"
+        aria-label="Patch operations"
+        aria-hidden="true"
+        data-patch-operations
+      >
+        <button
+          class="patch-operation-button primary"
+          type="button"
+          data-add-patch-button
+        >
+          Add Patch
+        </button>
+
+        <button
+          class="patch-operation-button"
+          type="button"
+          data-edit-patch-button
+          disabled
+          title="Select a patch to edit"
+        >
+          Edit Patch
+        </button>
+      </div>
     </main>
 
     <PatchViewerDialog />
 
     <AboutDialog />
+
+	<AddPatchDialog />
   </body>
 </html>
 
@@ -282,11 +440,17 @@ console.log("Index page forest data:", {
       rgba(23, 72, 89, 0.08);
   }
 
-  .mode-button {
+  .mode-indicator {
     flex-shrink: 0;
+
+    min-width: 138px;
 
     padding:
       10px 14px;
+
+    border:
+      1px solid
+      rgba(56, 126, 76, 0.18);
 
     border-radius: 8px;
 
@@ -296,7 +460,44 @@ console.log("Index page forest data:", {
 
     font-weight: 700;
 
+    text-align: center;
     white-space: nowrap;
+
+    transition:
+      color 220ms ease,
+      background 220ms ease,
+      border-color 220ms ease,
+      transform 220ms ease;
+  }
+
+  body[data-current-mode="planting"]
+  .mode-indicator {
+    border-color:
+      rgba(37, 109, 148, 0.26);
+
+    background: #dceefa;
+
+    color: #174e6b;
+  }
+
+  .mode-indicator.is-changing {
+    animation:
+      mode-indicator-pulse
+      300ms ease;
+  }
+
+  @keyframes mode-indicator-pulse {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.06);
+    }
+
+    100% {
+      transform: scale(1);
+    }
   }
 
   /* =======================================================
@@ -619,7 +820,628 @@ console.log("Index page forest data:", {
   }
 
   /* =======================================================
-     RESPONSIVE HEADER
+     FLOATING MODE TOGGLE
+     ======================================================= */
+
+  .left-control-area {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 800;
+  
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  
+    gap: 12px;
+  }
+  
+  .mode-toggle-area {
+    display: flex;
+    align-items: center;
+  
+    gap: 12px;
+  }
+
+  .mode-toggle-button {
+    position: relative;
+
+    width: 76px;
+    height: 76px;
+
+    flex-shrink: 0;
+
+    padding: 0;
+
+    overflow: hidden;
+
+    border:
+      3px solid
+      rgba(255, 255, 255, 0.95);
+
+    border-radius: 22px;
+
+    background:
+      rgba(255, 255, 255, 0.92);
+
+    box-shadow:
+      0 10px 24px
+      rgba(14, 65, 84, 0.24);
+
+    cursor: pointer;
+
+    transition:
+      transform 180ms ease,
+      box-shadow 220ms ease,
+      border-color 220ms ease;
+  }
+
+  .mode-toggle-button:hover {
+    transform:
+      translateY(-2px)
+      scale(1.025);
+
+    box-shadow:
+      0 14px 30px
+      rgba(14, 65, 84, 0.30);
+  }
+
+  .mode-toggle-button:active {
+    transform:
+      translateY(1px)
+      scale(0.94);
+  }
+
+  .mode-toggle-button:focus-visible {
+    outline:
+      4px solid
+      rgba(82, 189, 236, 0.82);
+
+    outline-offset: 4px;
+  }
+
+  body[data-current-mode="planting"]
+  .mode-toggle-button {
+    border-color:
+      rgba(114, 213, 255, 0.95);
+
+    box-shadow:
+      0 0 0 5px
+      rgba(78, 178, 222, 0.18),
+      0 12px 30px
+      rgba(26, 110, 148, 0.34);
+  }
+
+  .mode-toggle-button.is-switching {
+    animation:
+      mode-toggle-switch
+      420ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+  }
+
+  @keyframes mode-toggle-switch {
+    0% {
+      transform:
+        scale(1)
+        rotate(0deg);
+    }
+
+    42% {
+      transform:
+        scale(0.82)
+        rotate(-7deg);
+    }
+
+    72% {
+      transform:
+        scale(1.08)
+        rotate(4deg);
+    }
+
+    100% {
+      transform:
+        scale(1)
+        rotate(0deg);
+    }
+  }
+
+  .mode-toggle-image-frame {
+    position: relative;
+
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    overflow: hidden;
+
+    border-radius: 19px;
+  }
+
+  .mode-toggle-image {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+
+    opacity: 0;
+
+    transform:
+      scale(1.10)
+      rotate(-4deg);
+
+    transition:
+      opacity 220ms ease,
+      transform 320ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+
+    pointer-events: none;
+
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .mode-toggle-image.is-visible {
+    opacity: 1;
+
+    transform:
+      scale(1)
+      rotate(0deg);
+  }
+
+  .mode-toggle-label {
+    max-width: 150px;
+
+    padding:
+      8px 12px;
+
+    border:
+      1px solid
+      rgba(32, 84, 103, 0.16);
+
+    border-radius: 10px;
+
+    background:
+      rgba(255, 255, 255, 0.88);
+
+    box-shadow:
+      0 7px 17px
+      rgba(22, 69, 86, 0.13);
+
+    color: #214c5d;
+
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.25;
+
+    pointer-events: none;
+
+    transition:
+      color 220ms ease,
+      background 220ms ease;
+  }
+
+  body[data-current-mode="planting"]
+  .mode-toggle-label {
+    background:
+      rgba(222, 243, 253, 0.94);
+
+    color: #145370;
+  }
+
+  /* =======================================================
+     INTERACTION TOOLS
+     ======================================================= */
+  
+  .interaction-tools {
+    display: flex;
+    flex-direction: column;
+  
+    gap: 8px;
+  
+    padding: 7px;
+  
+    border:
+      1px solid
+      rgba(33, 91, 113, 0.20);
+  
+    border-radius: 14px;
+  
+    background:
+      rgba(255, 255, 255, 0.88);
+  
+    box-shadow:
+      0 8px 20px
+      rgba(17, 68, 88, 0.18);
+  
+    backdrop-filter: blur(6px);
+  }
+  
+  .interaction-tool-button {
+    position: relative;
+  
+    width: 46px;
+    height: 46px;
+  
+    display: grid;
+    place-items: center;
+  
+    padding: 4px;
+  
+    border:
+      2px solid
+      transparent;
+  
+    border-radius: 11px;
+  
+    background:
+      rgba(241, 249, 252, 0.92);
+  
+    box-shadow:
+      0 3px 8px
+      rgba(20, 72, 91, 0.10);
+  
+    cursor: pointer;
+  
+    opacity: 0.66;
+  
+    transition:
+      opacity 160ms ease,
+      transform 160ms ease,
+      border-color 180ms ease,
+      background 180ms ease,
+      box-shadow 180ms ease;
+  }
+  
+  .interaction-tool-button img {
+    width: 100%;
+    height: 100%;
+  
+    display: block;
+  
+    border-radius: 7px;
+  
+    object-fit: cover;
+  
+    pointer-events: none;
+  
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  
+  .interaction-tool-button:hover {
+    opacity: 0.92;
+  
+    transform:
+      translateY(-1px)
+      scale(1.03);
+  }
+  
+  .interaction-tool-button:active {
+    transform:
+      translateY(1px)
+      scale(0.90);
+  }
+  
+  .interaction-tool-button:focus-visible {
+    outline:
+      3px solid
+      rgba(62, 171, 218, 0.78);
+  
+    outline-offset: 3px;
+  }
+  
+  .interaction-tool-button.is-selected {
+    border-color:
+      rgba(47, 158, 207, 0.92);
+  
+    background:
+      rgba(224, 246, 255, 0.98);
+  
+    box-shadow:
+      0 0 0 4px
+      rgba(57, 169, 217, 0.17),
+      0 7px 16px
+      rgba(22, 101, 137, 0.24);
+  
+    opacity: 1;
+  
+    transform:
+      translateY(-1px);
+  }
+  
+  .interaction-tool-button.is-temporary {
+    border-color:
+      rgba(72, 184, 229, 0.95);
+  
+    box-shadow:
+      0 0 0 5px
+      rgba(72, 184, 229, 0.23),
+      0 7px 17px
+      rgba(22, 101, 137, 0.25);
+  }
+  
+  .interaction-tool-button.is-animating {
+    animation:
+      interaction-tool-selected
+      340ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+  }
+  
+  @keyframes interaction-tool-selected {
+    0% {
+      transform:
+        scale(1);
+    }
+  
+    45% {
+      transform:
+        scale(0.82)
+        rotate(-5deg);
+    }
+  
+    75% {
+      transform:
+        scale(1.10)
+        rotate(3deg);
+    }
+  
+    100% {
+      transform:
+        translateY(-1px)
+        scale(1);
+    }
+  }
+  
+  .tool-active-indicator {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+  
+    width: 11px;
+    height: 11px;
+  
+    border:
+      2px solid white;
+  
+    border-radius: 50%;
+  
+    background: #35a9d8;
+  
+    box-shadow:
+      0 2px 6px
+      rgba(14, 77, 104, 0.32);
+  
+    opacity: 0;
+    transform: scale(0.4);
+  
+    transition:
+      opacity 160ms ease,
+      transform 180ms ease;
+  }
+  
+  .interaction-tool-button.is-selected
+  .tool-active-indicator {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  /* Custom tooltip */
+  
+  .interaction-tool-button::after {
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    z-index: 100;
+  
+    width: max-content;
+    max-width: 220px;
+  
+    padding:
+      7px 10px;
+  
+    border:
+      1px solid
+      rgba(36, 91, 111, 0.20);
+  
+    border-radius: 8px;
+  
+    background:
+      rgba(255, 255, 255, 0.97);
+  
+    box-shadow:
+      0 7px 17px
+      rgba(15, 63, 81, 0.18);
+  
+    color: #214b5c;
+  
+    content:
+      attr(data-tooltip);
+  
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+  
+    opacity: 0;
+    visibility: hidden;
+  
+    pointer-events: none;
+  
+    transform:
+      translate(
+        -5px,
+        -50%
+      );
+  
+    transition:
+      opacity 150ms ease,
+      visibility 150ms ease,
+      transform 150ms ease;
+  }
+  
+  .interaction-tool-button:hover::after,
+  .interaction-tool-button:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+  
+    transform:
+      translate(
+        0,
+        -50%
+      );
+  }
+
+  /* =======================================================
+     PATCH OPERATIONS
+     ======================================================= */
+
+  .patch-operations {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 800;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding:
+      10px;
+
+    border:
+      1px solid
+      rgba(31, 94, 118, 0.20);
+
+    border-radius: 14px;
+
+    background:
+      rgba(255, 255, 255, 0.92);
+
+    box-shadow:
+      0 10px 26px
+      rgba(14, 65, 84, 0.20);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transform:
+      translateY(-12px)
+      scale(0.96);
+
+    pointer-events: none;
+
+    transition:
+      opacity 220ms ease,
+      visibility 220ms ease,
+      transform 260ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+  }
+
+  body[data-current-mode="planting"]
+  .patch-operations {
+    opacity: 1;
+    visibility: visible;
+
+    transform:
+      translateY(0)
+      scale(1);
+
+    pointer-events: auto;
+  }
+
+  .patch-operation-button {
+    min-height: 42px;
+
+    padding:
+      9px 16px;
+
+    border:
+      1px solid
+      rgba(32, 91, 113, 0.24);
+
+    border-radius: 10px;
+
+    background:
+      rgba(241, 249, 252, 0.96);
+
+    color: #1c4c60;
+
+    cursor: pointer;
+
+    font-weight: 700;
+
+    transition:
+      background 160ms ease,
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .patch-operation-button.primary {
+    border-color:
+      rgba(26, 111, 147, 0.48);
+
+    background: #176887;
+
+    color: white;
+  }
+
+  .patch-operation-button:hover:not(:disabled) {
+    transform:
+      translateY(-1px);
+
+    box-shadow:
+      0 6px 14px
+      rgba(24, 89, 116, 0.18);
+  }
+
+  .patch-operation-button:active:not(:disabled) {
+    transform:
+      translateY(1px)
+      scale(0.97);
+  }
+
+  .patch-operation-button:focus-visible {
+    outline:
+      3px solid
+      rgba(68, 174, 220, 0.72);
+
+    outline-offset: 2px;
+  }
+
+  .patch-operation-button:disabled {
+    opacity: 0.46;
+
+    cursor: not-allowed;
+  }
+
+  /* =======================================================
+     RESPONSIVE HEADER AND CONTROLS
      ======================================================= */
 
   @media (max-width: 950px) {
@@ -641,11 +1463,49 @@ console.log("Index page forest data:", {
     .forest-stats {
       margin-left: auto;
     }
+
+    .left-control-area {
+      top: 14px;
+      left: 14px;
+    }
+
+    .patch-operations {
+      top: 14px;
+      right: 14px;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .mode-toggle-label {
+      display: none;
+    }
+
+    .mode-toggle-button {
+      width: 64px;
+      height: 64px;
+
+      border-radius: 18px;
+    }
+
+    .mode-toggle-image-frame {
+      border-radius: 15px;
+    }
+
+    .patch-operations {
+      flex-direction: column;
+      align-items: stretch;
+
+      max-width: 145px;
+    }
+
+    .patch-operation-button {
+      width: 100%;
+    }
   }
 
   @media (max-width: 620px) {
-    .mode-button {
-      display: none;
+    .mode-indicator {
+      min-width: auto;
     }
 
     .forest-stats {
@@ -672,14 +1532,73 @@ console.log("Index page forest data:", {
      TYPES
      ======================================================= */
 
+  import {
+    initializeForestState,
+    isForestStateInitialized,
+  } from "../scripts/forestState";
+
+  import type {
+    ForestPatchRecord,
+    TreeRecord,
+  } from "../scripts/loadForestData";
+
+  import type {
+    ForestStateChangedDetail,
+  } from "../scripts/forestState";
+
+  type ForestMode =
+    | "strolling"
+    | "planting";
+
+  type ForestInteractionTool =
+    | "cursor"
+    | "pan";
+  
+  interface ForestInteractionToolChangedDetail {
+    tool: ForestInteractionTool;
+    temporary: boolean;
+  }
+
   interface PatchViewerOpenDetail {
     patchId: string;
     treeId?: string;
   }
 
+  interface ForestModeChangedDetail {
+    mode: ForestMode;
+  }
+
   /* =======================================================
      ELEMENT REFERENCES
      ======================================================= */
+
+  const initialPatchesData =
+    document.querySelector<HTMLScriptElement>(
+      "#initial-forest-patches",
+    );
+
+  const initialTreesData =
+    document.querySelector<HTMLScriptElement>(
+      "#initial-forest-trees",
+    );
+
+  const patchCountElement =
+    document.querySelector<HTMLElement>(
+      "[data-patch-count]",
+    );
+
+  const saplingCountElement =
+    document.querySelector<HTMLElement>(
+      "[data-sapling-count]",
+    );
+
+  const treeCountElement =
+    document.querySelector<HTMLElement>(
+      "[data-tree-count]",
+    );
+
+  const pageBody =
+    document.body;
 
   const homeButton =
     document.querySelector<HTMLButtonElement>(
@@ -689,6 +1608,63 @@ console.log("Index page forest data:", {
   const aboutButton =
     document.querySelector<HTMLButtonElement>(
       "[data-about-button]",
+    );
+
+  const modeIndicator =
+    document.querySelector<HTMLElement>(
+      "[data-mode-indicator]",
+    );
+
+  const modeToggleButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-mode-toggle]",
+    );
+
+  const strollModeImage =
+    document.querySelector<HTMLImageElement>(
+      "[data-mode-image-stroll]",
+    );
+
+  const plantModeImage =
+    document.querySelector<HTMLImageElement>(
+      "[data-mode-image-plant]",
+    );
+
+  const cursorToolButton =
+    document.querySelector<HTMLButtonElement>(
+      '[data-interaction-tool="cursor"]',
+    );
+  
+  const panToolButton =
+    document.querySelector<HTMLButtonElement>(
+      '[data-interaction-tool="pan"]',
+    );
+  
+  const interactionToolButtons =
+    Array.from(
+      document.querySelectorAll<HTMLButtonElement>(
+        "[data-interaction-tool]",
+      ),
+    );
+
+  const modeToggleLabel =
+    document.querySelector<HTMLElement>(
+      "[data-mode-toggle-label]",
+    );
+
+  const patchOperations =
+    document.querySelector<HTMLElement>(
+      "[data-patch-operations]",
+    );
+
+  const addPatchButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-add-patch-button]",
+    );
+
+  const editPatchButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-edit-patch-button]",
     );
 
   const searchContainer =
@@ -722,10 +1698,511 @@ console.log("Index page forest data:", {
     ),
   );
 
+  let currentMode:
+    ForestMode = "strolling";
+
+  let manuallySelectedTool:
+    ForestInteractionTool =
+      "cursor";
+  
+  let effectiveInteractionTool:
+    ForestInteractionTool =
+      "cursor";
+  
+  let isShiftPanActive = false;
+  
+  let toolAnimationTimeout:
+    number | undefined;
+
   let visibleResults:
     HTMLButtonElement[] = [];
 
   let activeResultIndex = -1;
+
+  let modeAnimationTimeout:
+    number | undefined;
+
+  function parseInitialData<T>(
+    element:
+      HTMLScriptElement | null,
+    fallback: T,
+  ): T {
+    if (!element) {
+      console.warn(
+        "Initial forest data element was not found.",
+      );
+
+      return fallback;
+    }
+
+    try {
+      return JSON.parse(
+        element.textContent ?? "",
+      ) as T;
+    } catch (error) {
+      console.error(
+        "Initial forest data could not be parsed:",
+        error,
+      );
+
+      return fallback;
+    }
+  }
+
+  /* =======================================================
+     INTERACTION TOOL
+     ======================================================= */
+  
+  function dispatchInteractionToolChanged(
+    tool: ForestInteractionTool,
+    temporary: boolean,
+  ) {
+    const detail:
+      ForestInteractionToolChangedDetail = {
+        tool,
+        temporary,
+      };
+  
+    window.dispatchEvent(
+      new CustomEvent(
+        "forest:interaction-tool-changed",
+        {
+          detail,
+        },
+      ),
+    );
+  }
+  
+  function animateInteractionTool(
+    selectedButton:
+      HTMLButtonElement | null,
+  ) {
+    if (!selectedButton) {
+      return;
+    }
+  
+    if (
+      toolAnimationTimeout !==
+      undefined
+    ) {
+      window.clearTimeout(
+        toolAnimationTimeout,
+      );
+    }
+  
+    selectedButton.classList.remove(
+      "is-animating",
+    );
+  
+    void selectedButton.offsetWidth;
+  
+    selectedButton.classList.add(
+      "is-animating",
+    );
+  
+    toolAnimationTimeout =
+      window.setTimeout(
+        () => {
+          selectedButton.classList.remove(
+            "is-animating",
+          );
+        },
+        360,
+      );
+  }
+  
+  function updateInteractionToolButtons(
+    tool: ForestInteractionTool,
+    temporary: boolean,
+    animate = true,
+  ) {
+    interactionToolButtons.forEach(
+      (button) => {
+        const buttonTool =
+          button.dataset
+            .interactionTool as
+            ForestInteractionTool;
+  
+        const isSelected =
+          buttonTool === tool;
+  
+        button.classList.toggle(
+          "is-selected",
+          isSelected,
+        );
+  
+        button.classList.toggle(
+          "is-temporary",
+          isSelected &&
+          temporary,
+        );
+  
+        button.setAttribute(
+          "aria-pressed",
+          String(isSelected),
+        );
+      },
+    );
+  
+    if (animate) {
+      animateInteractionTool(
+        tool === "cursor"
+          ? cursorToolButton
+          : panToolButton,
+      );
+    }
+  }
+  
+  function applyInteractionTool(
+    tool: ForestInteractionTool,
+    temporary = false,
+    animate = true,
+  ) {
+    effectiveInteractionTool =
+      tool;
+  
+    pageBody.dataset
+      .interactionTool =
+      tool;
+  
+    updateInteractionToolButtons(
+      tool,
+      temporary,
+      animate,
+    );
+  
+    dispatchInteractionToolChanged(
+      tool,
+      temporary,
+    );
+  
+    console.log(
+      "Forest interaction tool changed:",
+      {
+        tool,
+        temporary,
+        manuallySelectedTool,
+      },
+    );
+  }
+  
+  function selectInteractionTool(
+    tool: ForestInteractionTool,
+  ) {
+    manuallySelectedTool =
+      tool;
+  
+    isShiftPanActive =
+      false;
+  
+    applyInteractionTool(
+      tool,
+      false,
+    );
+  }
+  
+  function restoreCursorTool() {
+    manuallySelectedTool =
+      "cursor";
+  
+    isShiftPanActive =
+      false;
+  
+    applyInteractionTool(
+      "cursor",
+      false,
+    );
+  }
+  
+  interactionToolButtons.forEach(
+    (button) => {
+      button.addEventListener(
+        "click",
+        () => {
+          const requestedTool =
+            button.dataset
+              .interactionTool;
+  
+          if (
+            requestedTool !==
+              "cursor" &&
+            requestedTool !==
+              "pan"
+          ) {
+            return;
+          }
+  
+          selectInteractionTool(
+            requestedTool,
+          );
+        },
+      );
+    },
+  );
+
+  function isTextEntryElement(
+    element: Element | null,
+  ): boolean {
+    return (
+      element instanceof
+        HTMLInputElement ||
+      element instanceof
+        HTMLTextAreaElement ||
+      element instanceof
+        HTMLSelectElement ||
+      (
+        element instanceof
+          HTMLElement &&
+        element.isContentEditable
+      )
+    );
+  }
+  
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key !== "Shift" ||
+        event.repeat ||
+        isShiftPanActive
+      ) {
+        return;
+      }
+  
+      if (
+        isTextEntryElement(
+          document.activeElement,
+        )
+      ) {
+        return;
+      }
+  
+      isShiftPanActive = true;
+  
+      applyInteractionTool(
+        "pan",
+        true,
+      );
+    },
+  );
+  
+  window.addEventListener(
+    "keyup",
+    (event) => {
+      if (
+        event.key !== "Shift" ||
+        !isShiftPanActive
+      ) {
+        return;
+      }
+  
+      isShiftPanActive = false;
+  
+      applyInteractionTool(
+        manuallySelectedTool,
+        false,
+      );
+    },
+  );
+  
+  window.addEventListener(
+    "blur",
+    () => {
+      if (!isShiftPanActive) {
+        return;
+      }
+  
+      isShiftPanActive = false;
+  
+      applyInteractionTool(
+        manuallySelectedTool,
+        false,
+        false,
+      );
+    },
+  );
+
+  /* =======================================================
+     FOREST MODE
+     ======================================================= */
+
+  function dispatchModeChangedEvent(
+    mode: ForestMode,
+  ) {
+    const detail:
+      ForestModeChangedDetail = {
+        mode,
+      };
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "forest:mode-changed",
+        {
+          detail,
+        },
+      ),
+    );
+  }
+
+  function animateModeChange() {
+    if (
+      modeAnimationTimeout !==
+      undefined
+    ) {
+      window.clearTimeout(
+        modeAnimationTimeout,
+      );
+    }
+
+    modeToggleButton?.classList.remove(
+      "is-switching",
+    );
+
+    modeIndicator?.classList.remove(
+      "is-changing",
+    );
+
+    /*
+      Force the browser to register the removed classes so the
+      animation can replay on every toggle.
+    */
+    void modeToggleButton?.offsetWidth;
+
+    modeToggleButton?.classList.add(
+      "is-switching",
+    );
+
+    modeIndicator?.classList.add(
+      "is-changing",
+    );
+
+    modeAnimationTimeout =
+      window.setTimeout(
+        () => {
+          modeToggleButton?.classList.remove(
+            "is-switching",
+          );
+
+          modeIndicator?.classList.remove(
+            "is-changing",
+          );
+        },
+        440,
+      );
+  }
+
+  function applyForestMode(
+    mode: ForestMode,
+    animate = true,
+  ) {
+    currentMode = mode;
+
+    pageBody.dataset.currentMode =
+      mode;
+
+    const isPlantingMode =
+      mode === "planting";
+
+    if (modeIndicator) {
+      modeIndicator.textContent =
+        isPlantingMode
+          ? "Planting Mode"
+          : "Strolling Mode";
+    }
+
+    strollModeImage?.classList.toggle(
+      "is-visible",
+      !isPlantingMode,
+    );
+
+    plantModeImage?.classList.toggle(
+      "is-visible",
+      isPlantingMode,
+    );
+
+    if (modeToggleLabel) {
+      modeToggleLabel.textContent =
+        isPlantingMode
+          ? "Switch to Strolling"
+          : "Switch to Planting";
+    }
+
+    if (modeToggleButton) {
+      modeToggleButton.setAttribute(
+        "aria-pressed",
+        String(isPlantingMode),
+      );
+
+      const actionLabel =
+        isPlantingMode
+          ? "Switch to Strolling Mode"
+          : "Switch to Planting Mode";
+
+      modeToggleButton.setAttribute(
+        "aria-label",
+        actionLabel,
+      );
+
+      modeToggleButton.title =
+        actionLabel;
+    }
+
+    if (patchOperations) {
+      patchOperations.setAttribute(
+        "aria-hidden",
+        String(!isPlantingMode),
+      );
+    }
+
+    if (!isPlantingMode) {
+      /*
+        Patch selection will be implemented later. Until then,
+        Edit Patch always returns to disabled when leaving
+        Planting Mode.
+      */
+      if (editPatchButton) {
+        editPatchButton.disabled =
+          true;
+
+        editPatchButton.title =
+          "Select a patch to edit";
+      }
+    }
+
+    if (animate) {
+      animateModeChange();
+    }
+
+    dispatchModeChangedEvent(
+      mode,
+    );
+
+    console.log(
+      "Forest mode changed:",
+      {
+        mode,
+      },
+    );
+  }
+
+  function toggleForestMode() {
+    const nextMode:
+      ForestMode =
+        currentMode === "strolling"
+          ? "planting"
+          : "strolling";
+
+    closeSearchResults();
+
+    applyForestMode(
+      nextMode,
+    );
+  }
+
+  modeToggleButton?.addEventListener(
+    "click",
+    toggleForestMode,
+  );
 
   /* =======================================================
      HOME BUTTON
@@ -741,6 +2218,15 @@ console.log("Index page forest data:", {
       );
 
       closeSearchResults();
+
+      /*
+        Home always restores Strolling Mode.
+      */
+      applyForestMode(
+        "strolling",
+      );
+
+	  restoreCursorTool();
 
       console.log(
         "Home button selected.",
@@ -765,6 +2251,49 @@ console.log("Index page forest data:", {
 
       console.log(
         "About dialog requested.",
+      );
+    },
+  );
+
+  /* =======================================================
+     PATCH OPERATION PLACEHOLDERS
+     ======================================================= */
+
+  addPatchButton?.addEventListener(
+    "click",
+    () => {
+      if (
+        currentMode !== "planting"
+      ) {
+        return;
+      }
+
+      closeSearchResults();
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "add-patch-dialog:open",
+        ),
+      );
+
+      console.log(
+        "Add Patch dialog requested.",
+      );
+    },
+  );
+
+  editPatchButton?.addEventListener(
+    "click",
+    () => {
+      if (
+        currentMode !== "planting" ||
+        editPatchButton.disabled
+      ) {
+        return;
+      }
+
+      console.log(
+        "Edit Patch requested.",
       );
     },
   );
@@ -1158,6 +2687,88 @@ console.log("Index page forest data:", {
         closeSearchResults();
       }
     },
+  );
+
+  window.addEventListener(
+    "forest:state-changed",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<
+          ForestStateChangedDetail
+        >;
+
+      const statistics =
+        customEvent.detail
+          ?.snapshot
+          .statistics;
+
+      if (!statistics) {
+        return;
+      }
+
+      if (patchCountElement) {
+        patchCountElement.textContent =
+          String(
+            statistics.patchCount,
+          );
+      }
+
+      if (saplingCountElement) {
+        saplingCountElement.textContent =
+          String(
+            statistics.saplingCount,
+          );
+      }
+
+      if (treeCountElement) {
+        treeCountElement.textContent =
+          String(
+            statistics.treeCount,
+          );
+      }
+
+      console.log(
+        "Header statistics updated:",
+        statistics,
+      );
+    },
+  );
+
+  /* =======================================================
+     INITIAL STATE
+     ======================================================= */
+
+  const initialPatches =
+    parseInitialData<
+      ForestPatchRecord[]
+    >(
+      initialPatchesData,
+      [],
+    );
+
+  const initialTrees =
+    parseInitialData<
+      TreeRecord[]
+    >(
+      initialTreesData,
+      [],
+    );
+
+  if (
+    !isForestStateInitialized()
+  ) {
+    initializeForestState(
+      initialPatches,
+      initialTrees,
+    );
+  }
+
+  applyForestMode(
+    "strolling",
+    false,
+	false,
   );
 
   updateClearButton();

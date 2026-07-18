@@ -1,0 +1,1899 @@
+---
+import stylesData from "../../data/styles.json";
+
+/* =========================================================
+   ADD PATCH DIALOG
+
+   This dialog gathers patch details and adds a new patch to
+   the temporary browser-side forest state.
+
+   Persistence will be implemented in a later milestone.
+   ========================================================= */
+
+const styleEntries = Object.entries(
+  stylesData.styles,
+);
+---
+
+<div
+  class="add-patch-dialog"
+  aria-hidden="true"
+  data-add-patch-dialog
+>
+  <div
+    class="dialog-backdrop"
+    data-add-patch-backdrop
+  ></div>
+
+  <section
+    class="dialog-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="add-patch-dialog-title"
+    aria-describedby="add-patch-dialog-description"
+    tabindex="-1"
+    data-add-patch-panel
+  >
+    <header class="dialog-header">
+      <div>
+        <p class="dialog-eyebrow">
+          Patch Operations
+        </p>
+
+        <h2 id="add-patch-dialog-title">
+          Add Forest Patch
+        </h2>
+
+        <p
+          id="add-patch-dialog-description"
+          class="dialog-description"
+        >
+          Create a new learning area in your forest.
+        </p>
+      </div>
+
+      <button
+        class="dialog-close-button"
+        type="button"
+        aria-label="Close Add Patch dialog"
+        data-add-patch-close
+      >
+        ×
+      </button>
+    </header>
+
+    <form
+      class="add-patch-form"
+      novalidate
+      data-add-patch-form
+    >
+      <!-- ===============================================
+           PATCH NAME
+           =============================================== -->
+
+      <div class="form-field">
+        <div class="field-label-row">
+          <label for="add-patch-name">
+            Patch Name
+          </label>
+
+          <span
+            class="character-counter"
+            data-patch-name-counter
+          >
+            0 / 50
+          </span>
+        </div>
+
+        <input
+          id="add-patch-name"
+          name="patchName"
+          type="text"
+          maxlength="50"
+          autocomplete="off"
+          placeholder="Example: Machine Learning"
+          aria-describedby="add-patch-name-help add-patch-name-error"
+          data-patch-name-input
+        />
+
+        <p
+          id="add-patch-name-help"
+          class="field-help"
+        >
+          Use a clear name for the broad skill area.
+        </p>
+
+        <p
+          id="add-patch-name-error"
+          class="field-error"
+          role="alert"
+          data-patch-name-error
+          hidden
+        ></p>
+      </div>
+
+      <!-- ===============================================
+           PATCH STYLE
+           =============================================== -->
+
+      <fieldset class="style-fieldset">
+        <legend>
+          Patch Style
+        </legend>
+
+        <p class="field-help">
+          Choose the forest theme for this patch.
+        </p>
+
+        <div
+          class="style-grid"
+          data-style-grid
+        >
+          {
+            styleEntries.map(
+              (
+                [
+                  styleId,
+                  styleDetails,
+                ],
+              ) => {
+                const styleNumber =
+                  Number(styleId);
+
+                return (
+                  <label class="style-option">
+                    <input
+                      type="radio"
+                      name="patchStyle"
+                      value={styleNumber}
+                      checked={styleId === "01"}
+                      data-patch-style-input
+                    />
+
+                    <span class="style-card">
+                      <span class="style-preview">
+                        <img
+                          src={`/assets/grounds/Ground_${styleId}.png`}
+                          alt=""
+                          aria-hidden="true"
+                          draggable="false"
+                        />
+                      </span>
+
+                      <span class="style-name">
+                        {styleDetails.name}
+                      </span>
+                    </span>
+                  </label>
+                );
+              },
+            )
+          }
+        </div>
+
+        <p
+          class="field-error"
+          role="alert"
+          data-patch-style-error
+          hidden
+        ></p>
+      </fieldset>
+
+      <!-- ===============================================
+           PATCH DESCRIPTION
+           =============================================== -->
+
+      <div class="form-field">
+        <div class="field-label-row">
+          <label for="add-patch-description">
+            Patch Description
+          </label>
+
+          <span
+            class="character-counter"
+            data-patch-description-counter
+          >
+            0 / 250
+          </span>
+        </div>
+
+        <textarea
+          id="add-patch-description"
+          name="patchDescription"
+          maxlength="250"
+          rows="5"
+          placeholder="Describe the knowledge, skills, or goals represented by this patch."
+          aria-describedby="add-patch-description-help add-patch-description-error"
+          data-patch-description-input
+        ></textarea>
+
+        <p
+          id="add-patch-description-help"
+          class="field-help"
+        >
+          This description appears when the patch is hovered.
+        </p>
+
+        <p
+          id="add-patch-description-error"
+          class="field-error"
+          role="alert"
+          data-patch-description-error
+          hidden
+        ></p>
+      </div>
+
+      <!-- ===============================================
+           FORM MESSAGE
+           =============================================== -->
+
+      <div
+        class="form-message"
+        role="status"
+        aria-live="polite"
+        data-add-patch-message
+        hidden
+      ></div>
+
+      <!-- ===============================================
+           ACTIONS
+           =============================================== -->
+
+      <footer class="dialog-actions">
+        <button
+          class="secondary-action"
+          type="button"
+          data-add-patch-cancel
+        >
+          Cancel
+        </button>
+
+        <button
+          class="primary-action"
+          type="submit"
+          data-add-patch-submit
+        >
+          Add Patch
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+
+<style>
+  .add-patch-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+
+    display: grid;
+    place-items: center;
+
+    padding: 24px;
+
+    opacity: 0;
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transition:
+      opacity 180ms ease,
+      visibility 180ms ease;
+  }
+
+  .add-patch-dialog.is-open {
+    opacity: 1;
+    visibility: visible;
+
+    pointer-events: auto;
+  }
+
+  .dialog-backdrop {
+    position: absolute;
+    inset: 0;
+
+    background:
+      rgba(13, 42, 54, 0.58);
+
+    backdrop-filter: blur(5px);
+  }
+
+  .dialog-panel {
+    position: relative;
+    z-index: 1;
+
+    width: min(720px, 100%);
+    max-height:
+      min(820px, calc(100vh - 48px));
+
+    overflow-y: auto;
+
+    border:
+      1px solid
+      rgba(42, 104, 128, 0.24);
+
+    border-radius: 20px;
+
+    background:
+      rgba(252, 254, 255, 0.99);
+
+    box-shadow:
+      0 24px 70px
+      rgba(9, 42, 56, 0.34);
+
+    color: #173f50;
+
+    transform:
+      translateY(18px)
+      scale(0.97);
+
+    transition:
+      transform 240ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+  }
+
+  .add-patch-dialog.is-open
+  .dialog-panel {
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  .dialog-header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding:
+      24px 26px 18px;
+
+    border-bottom:
+      1px solid
+      rgba(47, 100, 119, 0.16);
+
+    background:
+      rgba(252, 254, 255, 0.97);
+
+    backdrop-filter: blur(8px);
+  }
+
+  .dialog-eyebrow {
+    margin:
+      0 0 5px;
+
+    color: #3c829f;
+
+    font-size: 12px;
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .dialog-header h2 {
+    margin: 0;
+
+    color: #153f51;
+
+    font-size:
+      clamp(23px, 4vw, 30px);
+
+    line-height: 1.15;
+  }
+
+  .dialog-description {
+    margin:
+      8px 0 0;
+
+    color: #58727d;
+
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .dialog-close-button {
+    width: 38px;
+    height: 38px;
+
+    flex-shrink: 0;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 50%;
+
+    background:
+      rgba(38, 104, 131, 0.08);
+
+    color: #315e70;
+
+    cursor: pointer;
+
+    font-size: 26px;
+    line-height: 1;
+
+    transition:
+      background 150ms ease,
+      transform 150ms ease;
+  }
+
+  .dialog-close-button:hover {
+    background:
+      rgba(38, 104, 131, 0.16);
+  }
+
+  .dialog-close-button:active {
+    transform: scale(0.92);
+  }
+
+  .dialog-close-button:focus-visible {
+    outline:
+      3px solid
+      rgba(67, 172, 220, 0.72);
+
+    outline-offset: 2px;
+  }
+
+  .add-patch-form {
+    display: grid;
+
+    gap: 24px;
+
+    padding:
+      24px 26px 26px;
+  }
+
+  .form-field,
+  .style-fieldset {
+    display: grid;
+
+    gap: 8px;
+  }
+
+  .style-fieldset {
+    min-width: 0;
+
+    padding: 0;
+
+    border: 0;
+    margin: 0;
+  }
+
+  .form-field label,
+  .style-fieldset legend {
+    color: #173f50;
+
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .style-fieldset legend {
+    padding: 0;
+    margin-bottom: 4px;
+  }
+
+  .field-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+  }
+
+  .character-counter {
+    color: #68818b;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    white-space: nowrap;
+  }
+
+  .form-field input,
+  .form-field textarea {
+    width: 100%;
+
+    border:
+      1px solid
+      rgba(50, 102, 121, 0.34);
+
+    border-radius: 11px;
+
+    background: white;
+
+    color: #183f50;
+
+    outline: none;
+
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      background 150ms ease;
+  }
+
+  .form-field input {
+    min-height: 44px;
+
+    padding:
+      10px 12px;
+  }
+
+  .form-field textarea {
+    min-height: 120px;
+
+    padding:
+      12px;
+
+    resize: vertical;
+
+    line-height: 1.45;
+  }
+
+  .form-field input:hover,
+  .form-field textarea:hover {
+    background: #fbfeff;
+  }
+
+  .form-field input:focus,
+  .form-field textarea:focus {
+    border-color: #3f9fc4;
+
+    box-shadow:
+      0 0 0 3px
+      rgba(72, 173, 216, 0.17);
+  }
+
+  .form-field input.is-invalid,
+  .form-field textarea.is-invalid {
+    border-color: #bd4a4a;
+
+    box-shadow:
+      0 0 0 3px
+      rgba(189, 74, 74, 0.12);
+  }
+
+  .field-help {
+    margin: 0;
+
+    color: #6b818a;
+
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .field-error {
+    margin: 0;
+
+    color: #a33f3f;
+
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .field-error[hidden] {
+    display: none !important;
+  }
+
+  .style-grid {
+    display: grid;
+
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin-top: 6px;
+  }
+
+  .style-option {
+    position: relative;
+
+    cursor: pointer;
+  }
+
+  .style-option input {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .style-card {
+    display: grid;
+
+    gap: 8px;
+
+    min-height: 130px;
+
+    padding:
+      10px;
+
+    border:
+      2px solid
+      rgba(49, 101, 121, 0.18);
+
+    border-radius: 13px;
+
+    background:
+      rgba(245, 251, 253, 0.96);
+
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .style-option:hover
+  .style-card {
+    transform:
+      translateY(-2px);
+
+    border-color:
+      rgba(54, 143, 180, 0.45);
+
+    box-shadow:
+      0 8px 18px
+      rgba(27, 88, 112, 0.13);
+  }
+
+  .style-option input:checked
+  + .style-card {
+    border-color: #2f96bd;
+
+    background:
+      rgba(223, 245, 253, 0.98);
+
+    box-shadow:
+      0 0 0 3px
+      rgba(58, 161, 203, 0.14);
+  }
+
+  .style-option input:focus-visible
+  + .style-card {
+    outline:
+      3px solid
+      rgba(66, 171, 216, 0.72);
+
+    outline-offset: 2px;
+  }
+
+  .style-preview {
+    position: relative;
+
+    height: 86px;
+
+    display: grid;
+    place-items: center;
+
+    overflow: hidden;
+
+    border-radius: 9px;
+
+    background:
+      rgba(181, 220, 233, 0.42);
+  }
+
+  .style-preview img {
+    width: 110px;
+    height: 110px;
+
+    object-fit: contain;
+
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .style-name {
+    color: #244f60;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    text-align: center;
+  }
+
+  .form-message {
+    padding:
+      11px 13px;
+
+    border:
+      1px solid
+      rgba(60, 142, 175, 0.28);
+
+    border-radius: 10px;
+
+    background:
+      rgba(229, 247, 253, 0.88);
+
+    color: #1b5f79;
+
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .form-message.is-error {
+    border-color:
+      rgba(185, 68, 68, 0.28);
+
+    background:
+      rgba(255, 235, 235, 0.92);
+
+    color: #973e3e;
+  }
+
+  .form-message[hidden] {
+    display: none !important;
+  }
+
+  .dialog-actions {
+    position: sticky;
+    bottom: -26px;
+
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin:
+      2px -26px -26px;
+
+    padding:
+      17px 26px 22px;
+
+    border-top:
+      1px solid
+      rgba(47, 100, 119, 0.16);
+
+    background:
+      rgba(252, 254, 255, 0.97);
+
+    backdrop-filter: blur(8px);
+  }
+
+  .dialog-actions button {
+    min-height: 43px;
+
+    padding:
+      10px 18px;
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    font-weight: 800;
+
+    transition:
+      transform 150ms ease,
+      box-shadow 150ms ease,
+      background 150ms ease;
+  }
+
+  .secondary-action {
+    border:
+      1px solid
+      rgba(47, 99, 119, 0.28);
+
+    background:
+      rgba(245, 250, 252, 0.96);
+
+    color: #31596a;
+  }
+
+  .primary-action {
+    border:
+      1px solid #176887;
+
+    background: #176887;
+
+    color: white;
+  }
+
+  .dialog-actions button:hover {
+    transform:
+      translateY(-1px);
+
+    box-shadow:
+      0 7px 16px
+      rgba(23, 91, 118, 0.16);
+  }
+
+  .dialog-actions button:active {
+    transform:
+      translateY(1px)
+      scale(0.97);
+  }
+
+  .dialog-actions button:focus-visible {
+    outline:
+      3px solid
+      rgba(64, 171, 217, 0.72);
+
+    outline-offset: 2px;
+  }
+
+  .dialog-actions button:disabled {
+    opacity: 0.58;
+
+    cursor: wait;
+  }
+
+  @media (max-width: 620px) {
+    .add-patch-dialog {
+      align-items: end;
+
+      padding: 0;
+    }
+
+    .dialog-panel {
+      width: 100%;
+      max-height: 92vh;
+
+      border-radius:
+        20px 20px 0 0;
+    }
+
+    .dialog-header {
+      padding:
+        20px 18px 16px;
+    }
+
+    .add-patch-form {
+      padding:
+        20px 18px 22px;
+    }
+
+    .style-grid {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    }
+
+    .dialog-actions {
+      margin:
+        0 -18px -22px;
+
+      padding:
+        15px 18px 20px;
+    }
+  }
+
+  @media (max-width: 390px) {
+    .style-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .dialog-actions {
+      flex-direction: column-reverse;
+    }
+
+    .dialog-actions button {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  import {
+    addForestPatch,
+    getForestState,
+  } from "../../scripts/forestState";
+
+  import {
+    findNextAvailableHexCoordinate,
+  } from "../../scripts/hexSpiral";
+
+  /* =======================================================
+     TYPES
+     ======================================================= */
+
+  interface AddPatchDialogOpenDetail {
+    suggestedName?: string;
+  }
+
+  interface PatchApiSuccessResponse {
+    success: true;
+    patch: {
+      Patch_ID: string;
+      Patch_Name: string;
+      Patch_Style: string;
+      Patch_Order: number;
+      Hex_Q: number;
+      Hex_R: number;
+      Saplings_Planted: number;
+      Trees_Grown: number;
+      Patch_Description: string;
+      Date_Created: string;
+      Last_Updated: string;
+    };
+  }
+  
+  interface PatchApiErrorResponse {
+    success: false;
+    message: string;
+  
+    field?:
+      | "Patch_ID"
+      | "Patch_Name"
+      | "Patch_Order"
+      | "Hex_Coordinate"
+      | "Patch_Style"
+      | "Patch_Description"
+      | "Request";
+  }
+  
+  type PatchApiResponse =
+    | PatchApiSuccessResponse
+    | PatchApiErrorResponse;
+
+  /* =======================================================
+     ELEMENT REFERENCES
+     ======================================================= */
+
+  const dialog =
+    document.querySelector<HTMLElement>(
+      "[data-add-patch-dialog]",
+    );
+
+  const dialogPanel =
+    document.querySelector<HTMLElement>(
+      "[data-add-patch-panel]",
+    );
+
+  const backdrop =
+    document.querySelector<HTMLElement>(
+      "[data-add-patch-backdrop]",
+    );
+
+  const closeButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-add-patch-close]",
+    );
+
+  const cancelButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-add-patch-cancel]",
+    );
+
+  const form =
+    document.querySelector<HTMLFormElement>(
+      "[data-add-patch-form]",
+    );
+
+  const patchNameInput =
+    document.querySelector<HTMLInputElement>(
+      "[data-patch-name-input]",
+    );
+
+  const patchDescriptionInput =
+    document.querySelector<HTMLTextAreaElement>(
+      "[data-patch-description-input]",
+    );
+
+  const patchStyleInputs =
+    Array.from(
+      document.querySelectorAll<HTMLInputElement>(
+        "[data-patch-style-input]",
+      ),
+    );
+
+  const patchNameCounter =
+    document.querySelector<HTMLElement>(
+      "[data-patch-name-counter]",
+    );
+
+  const patchDescriptionCounter =
+    document.querySelector<HTMLElement>(
+      "[data-patch-description-counter]",
+    );
+
+  const patchNameError =
+    document.querySelector<HTMLElement>(
+      "[data-patch-name-error]",
+    );
+
+  const patchDescriptionError =
+    document.querySelector<HTMLElement>(
+      "[data-patch-description-error]",
+    );
+
+  const patchStyleError =
+    document.querySelector<HTMLElement>(
+      "[data-patch-style-error]",
+    );
+
+  const formMessage =
+    document.querySelector<HTMLElement>(
+      "[data-add-patch-message]",
+    );
+
+  const submitButton =
+    document.querySelector<HTMLButtonElement>(
+      "[data-add-patch-submit]",
+    );
+
+  let previouslyFocusedElement:
+    HTMLElement | null = null;
+
+  let isSubmitting = false;
+
+  /* =======================================================
+     DIALOG HELPERS
+     ======================================================= */
+
+  function isDialogOpen():
+    boolean {
+    return (
+      dialog?.classList.contains(
+        "is-open",
+      ) ?? false
+    );
+  }
+
+  function showFormMessage(
+    message: string,
+    isError = false,
+  ) {
+    if (!formMessage) return;
+
+    formMessage.textContent =
+      message;
+
+    formMessage.hidden = false;
+
+    formMessage.classList.toggle(
+      "is-error",
+      isError,
+    );
+  }
+
+  function clearFormMessage() {
+    if (!formMessage) return;
+
+    formMessage.textContent = "";
+    formMessage.hidden = true;
+
+    formMessage.classList.remove(
+      "is-error",
+    );
+  }
+
+  function updateCharacterCounters() {
+    if (
+      patchNameCounter &&
+      patchNameInput
+    ) {
+      patchNameCounter.textContent =
+        `${patchNameInput.value.length} / 50`;
+    }
+
+    if (
+      patchDescriptionCounter &&
+      patchDescriptionInput
+    ) {
+      patchDescriptionCounter.textContent =
+        `${patchDescriptionInput.value.length} / 250`;
+    }
+  }
+
+  function clearFieldError(
+    errorElement:
+      HTMLElement | null,
+
+    inputElement?:
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null,
+  ) {
+    if (errorElement) {
+      errorElement.textContent = "";
+      errorElement.hidden = true;
+    }
+
+    inputElement?.classList.remove(
+      "is-invalid",
+    );
+  }
+
+  function setFieldError(
+    errorElement:
+      HTMLElement | null,
+
+    message: string,
+
+    inputElement?:
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null,
+  ) {
+    if (errorElement) {
+      errorElement.textContent =
+        message;
+
+      errorElement.hidden = false;
+    }
+
+    inputElement?.classList.add(
+      "is-invalid",
+    );
+  }
+
+  function clearAllFieldErrors() {
+    clearFieldError(
+      patchNameError,
+      patchNameInput,
+    );
+
+    clearFieldError(
+      patchDescriptionError,
+      patchDescriptionInput,
+    );
+
+    clearFieldError(
+      patchStyleError,
+    );
+  }
+
+  function getSelectedPatchStyle():
+    number | null {
+    const selectedStyle =
+      patchStyleInputs.find(
+        (input) => input.checked,
+      );
+
+    if (!selectedStyle) {
+      return null;
+    }
+
+    const parsedStyle =
+      Number(selectedStyle.value);
+
+    return Number.isInteger(
+      parsedStyle,
+    )
+      ? parsedStyle
+      : null;
+  }
+
+  function resetForm(
+    suggestedName = "",
+  ) {
+    form?.reset();
+
+    if (patchNameInput) {
+      patchNameInput.value =
+        suggestedName;
+    }
+
+    if (
+      patchStyleInputs[0]
+    ) {
+      patchStyleInputs[0].checked =
+        true;
+    }
+
+    clearAllFieldErrors();
+    clearFormMessage();
+    updateCharacterCounters();
+  }
+
+  function openDialog(
+    detail:
+      AddPatchDialogOpenDetail = {},
+  ) {
+    if (
+      !dialog ||
+      !dialogPanel
+    ) {
+      return;
+    }
+
+    previouslyFocusedElement =
+      document.activeElement instanceof
+      HTMLElement
+        ? document.activeElement
+        : null;
+
+    resetForm(
+      detail.suggestedName ?? "",
+    );
+
+    dialog.classList.add(
+      "is-open",
+    );
+
+    dialog.setAttribute(
+      "aria-hidden",
+      "false",
+    );
+
+    document.body.classList.add(
+      "has-open-dialog",
+    );
+
+    window.setTimeout(
+      () => {
+        patchNameInput?.focus();
+      },
+      40,
+    );
+
+    console.log(
+      "Add Patch dialog opened.",
+    );
+  }
+
+  function closeDialog() {
+    if (
+      !dialog ||
+      isSubmitting
+    ) {
+      return;
+    }
+
+    dialog.classList.remove(
+      "is-open",
+    );
+
+    dialog.setAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    document.body.classList.remove(
+      "has-open-dialog",
+    );
+
+    previouslyFocusedElement?.focus();
+
+    previouslyFocusedElement =
+      null;
+
+    console.log(
+      "Add Patch dialog closed.",
+    );
+  }
+
+  /* =======================================================
+     PATCH METADATA
+     ======================================================= */
+
+  function extractTrailingNumber(
+    value: string,
+  ): number | null {
+    const match =
+      value.match(/(\d+)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    const parsedValue =
+      Number(match[1]);
+
+    return Number.isInteger(
+      parsedValue,
+    )
+      ? parsedValue
+      : null;
+  }
+
+  function createNextPatchId(
+    existingPatchIds:
+      readonly string[],
+  ): string {
+    const usedNumbers =
+      existingPatchIds
+        .map(
+          extractTrailingNumber,
+        )
+        .filter(
+          (
+            value,
+          ): value is number =>
+            value !== null,
+        );
+
+    const nextNumber =
+      usedNumbers.length > 0
+        ? Math.max(
+            ...usedNumbers,
+          ) + 1
+        : 1;
+
+    return `P${String(
+      nextNumber,
+    ).padStart(3, "0")}`;
+  }
+
+  function createNextPatchOrder(
+    existingPatchOrders:
+      readonly number[],
+  ): number {
+    if (
+      existingPatchOrders.length === 0
+    ) {
+      return 1;
+    }
+
+    return (
+      Math.max(
+        ...existingPatchOrders,
+      ) + 1
+    );
+  }
+
+  /* =======================================================
+     VALIDATION
+     ======================================================= */
+
+  function validateForm():
+    boolean {
+    clearAllFieldErrors();
+    clearFormMessage();
+
+    let isValid = true;
+
+    const patchName =
+      patchNameInput?.value.trim() ??
+      "";
+
+    const patchDescription =
+      patchDescriptionInput?.value.trim() ??
+      "";
+
+    const patchStyle =
+      getSelectedPatchStyle();
+
+    if (!patchName) {
+      setFieldError(
+        patchNameError,
+        "Enter a patch name.",
+        patchNameInput,
+      );
+
+      isValid = false;
+    } else if (
+      patchName.length > 50
+    ) {
+      setFieldError(
+        patchNameError,
+        "Patch names cannot exceed 50 characters.",
+        patchNameInput,
+      );
+
+      isValid = false;
+    }
+
+    if (
+      patchDescription.length > 250
+    ) {
+      setFieldError(
+        patchDescriptionError,
+        "Patch descriptions cannot exceed 250 characters.",
+        patchDescriptionInput,
+      );
+
+      isValid = false;
+    }
+
+    if (
+      patchStyle === null ||
+      patchStyle < 1 ||
+      patchStyle > 9
+    ) {
+      setFieldError(
+        patchStyleError,
+        "Choose a valid patch style.",
+      );
+
+      isValid = false;
+    }
+
+    if (!isValid) {
+      showFormMessage(
+        "Please correct the highlighted fields.",
+        true,
+      );
+
+      const firstInvalidField =
+        form?.querySelector<HTMLElement>(
+          ".is-invalid",
+        );
+
+      firstInvalidField?.focus();
+    }
+
+    return isValid;
+  }
+
+  /* =======================================================
+     PATCH API
+     ======================================================= */
+  
+  async function savePatchToServer(
+    patch: {
+      Patch_ID: string;
+      Patch_Name: string;
+      Patch_Style: string;
+      Patch_Order: number;
+      Hex_Q: number;
+      Hex_R: number;
+      Saplings_Planted: number;
+      Trees_Grown: number;
+      Patch_Description: string;
+      Date_Created: string;
+      Last_Updated: string;
+    },
+  ): Promise<PatchApiSuccessResponse["patch"]> {
+    const response =
+      await fetch(
+        "/api/patches",
+        {
+          method: "POST",
+  
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+  
+          body: JSON.stringify({
+            patch,
+          }),
+        },
+      );
+  
+    let responseBody:
+      PatchApiResponse;
+  
+    try {
+      responseBody =
+        await response.json() as
+          PatchApiResponse;
+    } catch {
+      throw new Error(
+        "The patch server returned an invalid response.",
+      );
+    }
+  
+    if (
+      !response.ok ||
+      !responseBody.success
+    ) {
+      const apiError =
+        responseBody as
+          PatchApiErrorResponse;
+  
+      const error =
+        new Error(
+          apiError.message ||
+          "The patch could not be saved.",
+        ) as Error & {
+          field?:
+            PatchApiErrorResponse["field"];
+        };
+  
+      error.field =
+        apiError.field;
+  
+      throw error;
+    }
+  
+    return responseBody.patch;
+  }
+
+  /* =======================================================
+     FORM SUBMISSION
+     ======================================================= */
+
+  async function handleSubmit(
+    event: SubmitEvent,
+  ) {
+    event.preventDefault();
+
+    if (
+      isSubmitting ||
+      !validateForm()
+    ) {
+      return;
+    }
+
+    const patchName =
+      patchNameInput?.value.trim() ??
+      "";
+
+    const patchDescription =
+      patchDescriptionInput?.value.trim() ??
+      "";
+
+    const patchStyle =
+      getSelectedPatchStyle();
+
+    if (patchStyle === null) {
+      return;
+    }
+
+    isSubmitting = true;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent =
+        "Adding...";
+    }
+
+    try {
+      const currentState =
+        getForestState();
+
+      const nextPatchId =
+        createNextPatchId(
+          currentState.patches.map(
+            (patch) =>
+              patch.Patch_ID,
+          ),
+        );
+
+      const nextPatchOrder =
+        createNextPatchOrder(
+          currentState.patches.map(
+            (patch) =>
+              patch.Patch_Order,
+          ),
+        );
+
+      const nextCoordinate =
+        findNextAvailableHexCoordinate(
+          currentState.patches.map(
+            (patch) => ({
+              q: patch.Hex_Q,
+              r: patch.Hex_R,
+            }),
+          ),
+        );
+
+      const currentDate =
+        new Date()
+          .toISOString()
+          .slice(0, 10);
+      
+      const patchToSave = {
+        Patch_ID:
+          nextPatchId,
+      
+        Patch_Name:
+          patchName,
+      
+        Patch_Style:
+          String(
+            patchStyle,
+          ).padStart(2, "0"),
+      
+        Patch_Order:
+          nextPatchOrder,
+      
+        Hex_Q:
+          nextCoordinate.q,
+      
+        Hex_R:
+          nextCoordinate.r,
+      
+        Saplings_Planted: 0,
+      
+        Trees_Grown: 0,
+      
+        Patch_Description:
+          patchDescription,
+      
+        Date_Created:
+          currentDate,
+      
+        Last_Updated:
+          currentDate,
+      };
+      
+      const savedPatch =
+        await savePatchToServer(
+          patchToSave,
+        );
+      
+      const newPatch =
+        addForestPatch({
+          Patch_ID:
+            savedPatch.Patch_ID,
+      
+          Patch_Name:
+            savedPatch.Patch_Name,
+      
+          Patch_Style:
+            Number(
+              savedPatch.Patch_Style,
+            ),
+      
+          Patch_Order:
+            savedPatch.Patch_Order,
+      
+          Hex_Q:
+            savedPatch.Hex_Q,
+      
+          Hex_R:
+            savedPatch.Hex_R,
+      
+          Patch_Description:
+            savedPatch.Patch_Description,
+        });
+
+      showFormMessage(
+        `"${newPatch.Patch_Name}" was added to the temporary forest.`,
+      );
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "forest:patch-added",
+          {
+            detail: {
+              patch:
+                newPatch,
+            },
+          },
+        ),
+      );
+
+      console.log(
+        "Add Patch form submitted:",
+        {
+          newPatch,
+        },
+      );
+
+      window.setTimeout(
+        () => {
+          isSubmitting = false;
+
+          if (submitButton) {
+            submitButton.disabled =
+              false;
+
+            submitButton.textContent =
+              "Add Patch";
+          }
+
+          closeDialog();
+        },
+        550,
+      );
+    } catch (error) {
+      isSubmitting = false;
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent =
+          "Add Patch";
+      }
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "The patch could not be added.";
+      
+      const errorField =
+        (
+          error as
+            Error & {
+              field?: string;
+            }
+        ).field;
+      
+      if (
+        errorField ===
+        "Patch_Name"
+      ) {
+        setFieldError(
+          patchNameError,
+          errorMessage,
+          patchNameInput,
+        );
+      
+        patchNameInput?.focus();
+      } else if (
+        errorField ===
+        "Patch_Description"
+      ) {
+        setFieldError(
+          patchDescriptionError,
+          errorMessage,
+          patchDescriptionInput,
+        );
+      
+        patchDescriptionInput?.focus();
+      } else if (
+        errorField ===
+        "Patch_Style"
+      ) {
+        setFieldError(
+          patchStyleError,
+          errorMessage,
+        );
+      } else {
+        showFormMessage(
+          errorMessage,
+          true,
+        );
+      }
+
+      console.error(
+        "Add Patch failed:",
+        error,
+      );
+    }
+  }
+
+  /* =======================================================
+     EVENT LISTENERS
+     ======================================================= */
+
+  window.addEventListener(
+    "add-patch-dialog:open",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<
+          AddPatchDialogOpenDetail
+        >;
+
+      openDialog(
+        customEvent.detail ?? {},
+      );
+    },
+  );
+
+  closeButton?.addEventListener(
+    "click",
+    closeDialog,
+  );
+
+  cancelButton?.addEventListener(
+    "click",
+    closeDialog,
+  );
+
+  backdrop?.addEventListener(
+    "click",
+    closeDialog,
+  );
+
+  form?.addEventListener(
+    "submit",
+    handleSubmit,
+  );
+
+  patchNameInput?.addEventListener(
+    "input",
+    () => {
+      clearFieldError(
+        patchNameError,
+        patchNameInput,
+      );
+
+      clearFormMessage();
+      updateCharacterCounters();
+    },
+  );
+
+  patchDescriptionInput?.addEventListener(
+    "input",
+    () => {
+      clearFieldError(
+        patchDescriptionError,
+        patchDescriptionInput,
+      );
+
+      clearFormMessage();
+      updateCharacterCounters();
+    },
+  );
+
+  patchStyleInputs.forEach(
+    (styleInput) => {
+      styleInput.addEventListener(
+        "change",
+        () => {
+          clearFieldError(
+            patchStyleError,
+          );
+
+          clearFormMessage();
+        },
+      );
+    },
+  );
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key === "Escape" &&
+        isDialogOpen()
+      ) {
+        closeDialog();
+      }
+
+      if (
+        event.key !== "Tab" ||
+        !isDialogOpen() ||
+        !dialogPanel
+      ) {
+        return;
+      }
+
+      const focusableElements =
+        Array.from(
+          dialogPanel.querySelectorAll<HTMLElement>(
+            [
+              "button:not([disabled])",
+              "input:not([disabled])",
+              "textarea:not([disabled])",
+              "[tabindex]:not([tabindex='-1'])",
+            ].join(","),
+          ),
+        ).filter(
+          (element) =>
+            !element.hasAttribute(
+              "hidden",
+            ),
+        );
+
+      if (
+        focusableElements.length === 0
+      ) {
+        return;
+      }
+
+      const firstElement =
+        focusableElements[0];
+
+      const lastElement =
+        focusableElements[
+          focusableElements.length - 1
+        ];
+
+      if (
+        event.shiftKey &&
+        document.activeElement ===
+          firstElement
+      ) {
+        event.preventDefault();
+
+        lastElement.focus();
+      } else if (
+        !event.shiftKey &&
+        document.activeElement ===
+          lastElement
+      ) {
+        event.preventDefault();
+
+        firstElement.focus();
+      }
+    },
+  );
+
+  updateCharacterCounters();
+</script>

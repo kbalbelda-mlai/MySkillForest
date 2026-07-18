@@ -7,6 +7,15 @@ import {
 
 import worldSettings from "../../data/world_settings.json";
 
+type ForestInteractionTool =
+  | "cursor"
+  | "pan";
+
+interface ForestInteractionToolChangedDetail {
+  tool: ForestInteractionTool;
+  temporary: boolean;
+}
+
 /* =========================================================
    LOAD FOREST DATA
    ========================================================= */
@@ -16,7 +25,8 @@ const {
   trees,
 } = loadForestData();
 
-const hasForestPatches = forestPatches.length > 0;
+const hasForestPatches =
+  forestPatches.length > 0;
 
 /* =========================================================
    GROUP TREES BY PATCH
@@ -29,7 +39,9 @@ const treesByPatch = new Map<
 
 for (const tree of trees) {
   const existingTrees =
-    treesByPatch.get(tree.Patch_ID) ?? [];
+    treesByPatch.get(
+      tree.Patch_ID,
+    ) ?? [];
 
   existingTrees.push(tree);
 
@@ -86,39 +98,57 @@ function hexToWorld(
   return {
     x:
       q * horizontalSpacing +
-      r * (horizontalSpacing / 2),
+      r *
+        (
+          horizontalSpacing /
+          2
+        ),
 
     y:
       r * verticalSpacing,
   };
 }
 
-const positionedPatches = forestPatches
-  .map((patch) => {
-    const position = hexToWorld(
-      patch.Hex_Q,
-      patch.Hex_R,
+const positionedPatches =
+  forestPatches
+    .map((patch) => {
+      const position =
+        hexToWorld(
+          patch.Hex_Q,
+          patch.Hex_R,
+        );
+
+      return {
+        ...patch,
+
+        x: position.x,
+        y: position.y,
+      };
+    })
+    .sort(
+      (
+        firstPatch,
+        secondPatch,
+      ) => {
+        if (
+          firstPatch.y !==
+          secondPatch.y
+        ) {
+          return (
+            firstPatch.y -
+            secondPatch.y
+          );
+        }
+
+        return (
+          firstPatch.x -
+          secondPatch.x
+        );
+      },
     );
 
-    return {
-      ...patch,
-      x: position.x,
-      y: position.y,
-    };
-  })
-  .sort((firstPatch, secondPatch) => {
-    if (firstPatch.y !== secondPatch.y) {
-      return firstPatch.y - secondPatch.y;
-    }
-
-    return firstPatch.x - secondPatch.x;
-  });
-
 /* =========================================================
-   WORLD BOUNDS
-
-   Empty forests use zero-based bounds so Math.min/Math.max
-   never return Infinity or -Infinity.
+   INITIAL WORLD BOUNDS
    ========================================================= */
 
 const patchXPositions =
@@ -131,114 +161,188 @@ const patchYPositions =
     (patch) => patch.y,
   );
 
-const worldMinX = hasForestPatches
-  ? Math.min(...patchXPositions) -
-    patchHalfSize
-  : 0;
+const initialWorldMinX =
+  hasForestPatches
+    ? Math.min(
+        ...patchXPositions,
+      ) - patchHalfSize
+    : 0;
 
-const worldMaxX = hasForestPatches
-  ? Math.max(...patchXPositions) +
-    patchHalfSize
-  : 0;
+const initialWorldMaxX =
+  hasForestPatches
+    ? Math.max(
+        ...patchXPositions,
+      ) + patchHalfSize
+    : 0;
 
-const worldMinY = hasForestPatches
-  ? Math.min(...patchYPositions) -
-    patchHalfSize
-  : 0;
+const initialWorldMinY =
+  hasForestPatches
+    ? Math.min(
+        ...patchYPositions,
+      ) - patchHalfSize
+    : 0;
 
-const worldMaxY = hasForestPatches
-  ? Math.max(...patchYPositions) +
-    patchHalfSize
-  : 0;
+const initialWorldMaxY =
+  hasForestPatches
+    ? Math.max(
+        ...patchYPositions,
+      ) + patchHalfSize
+    : 0;
 
-console.log("ForestWorld initialized:", {
-  patchCount: forestPatches.length,
-  treeCount: trees.length,
-  hasForestPatches,
-  worldBounds: {
-    worldMinX,
-    worldMaxX,
-    worldMinY,
-    worldMaxY,
+console.log(
+  "ForestWorld initialized:",
+  {
+    patchCount:
+      forestPatches.length,
+
+    treeCount:
+      trees.length,
+
+    hasForestPatches,
+
+    worldBounds: {
+      initialWorldMinX,
+      initialWorldMaxX,
+      initialWorldMinY,
+      initialWorldMaxY,
+    },
   },
-});
+);
 ---
 
 <div
   class:list={[
     "forest-stage",
     {
-      "is-empty": !hasForestPatches,
-      "is-pan-disabled": !allowPan,
+      "is-empty":
+        !hasForestPatches,
+
+      "is-pan-disabled":
+        !allowPan,
     },
   ]}
   data-forest-stage
-  data-has-patches={String(hasForestPatches)}
-  data-allow-pan={String(allowPan)}
-  data-min-x={worldMinX}
-  data-max-x={worldMaxX}
-  data-min-y={worldMinY}
-  data-max-y={worldMaxY}
+  data-has-patches={String(
+    hasForestPatches,
+  )}
+  data-allow-pan={String(
+    allowPan,
+  )}
+  data-min-x={initialWorldMinX}
+  data-max-x={initialWorldMaxX}
+  data-min-y={initialWorldMinY}
+  data-max-y={initialWorldMaxY}
   data-padding-left={paddingLeft}
   data-padding-right={paddingRight}
   data-padding-top={paddingTop}
   data-padding-bottom={paddingBottom}
->
-  {
-    hasForestPatches ? (
-      <div
-        class="forest-pan-layer"
-        data-forest-pan-layer
-      >
-        <div class="forest-world">
-          {
-            positionedPatches.map(
-              (patch) => (
-                <ForestPatch
-                  patchId={patch.Patch_ID}
-                  patchName={patch.Patch_Name}
-                  patchStyle={patch.Patch_Style}
-                  patchDescription={
-                    patch.Patch_Description
-                  }
-                  saplingsPlanted={
-                    patch.Saplings_Planted
-                  }
-                  treesGrown={
-                    patch.Trees_Grown
-                  }
-                  x={patch.x}
-                  y={patch.y}
-                  trees={
-                    treesByPatch.get(
-                      patch.Patch_ID,
-                    ) ?? []
-                  }
-                  scale={patchScale}
-                  showLabel={true}
-                />
-              ),
-            )
-          }
-        </div>
-      </div>
-    ) : (
-      <div
-        class="empty-forest-state"
-        role="status"
-        aria-live="polite"
-      >
-        <p>
-          Time will wait for a Forest to Spring
-        </p>
-      </div>
-    )
+  data-horizontal-spacing={
+    horizontalSpacing
   }
+  data-vertical-spacing={
+    verticalSpacing
+  }
+>
+  <!--
+    The pan layer is always rendered.
+
+    This allows the first temporary patch to be added even
+    when the CSV files initially contain no patches.
+  -->
+
+  <div
+    class="forest-pan-layer"
+    data-forest-pan-layer
+  >
+    <div
+      class="forest-world"
+      data-forest-world
+    >
+      {
+        positionedPatches.map(
+          (patch) => (
+            <ForestPatch
+              patchId={
+                patch.Patch_ID
+              }
+              patchName={
+                patch.Patch_Name
+              }
+              patchStyle={
+                patch.Patch_Style
+              }
+              patchDescription={
+                patch.Patch_Description
+              }
+              saplingsPlanted={
+                patch.Saplings_Planted
+              }
+              treesGrown={
+                patch.Trees_Grown
+              }
+              x={patch.x}
+              y={patch.y}
+              trees={
+                treesByPatch.get(
+                  patch.Patch_ID,
+                ) ?? []
+              }
+              scale={patchScale}
+              showLabel={true}
+            />
+          ),
+        )
+      }
+    </div>
+  </div>
+
+  <div
+    class="empty-forest-state"
+    role="status"
+    aria-live="polite"
+    data-empty-forest-state
+    hidden={hasForestPatches}
+  >
+    <p>
+      Time will wait for a Forest to Spring
+    </p>
+  </div>
+
+  <!--
+    This hidden template preserves the exact ForestPatch
+    component structure and Astro style attributes.
+
+    Browser-side patches are cloned from this template.
+  -->
+
+  <template data-forest-patch-template>
+    <ForestPatch
+      patchId="__PATCH_ID__"
+      patchName="New Forest Patch"
+      patchStyle="01"
+      patchDescription=""
+      saplingsPlanted={0}
+      treesGrown={0}
+      x={0}
+      y={0}
+      trees={[]}
+      scale={patchScale}
+      showLabel={true}
+    />
+  </template>
 </div>
 
 <script>
+  import type {
+    ForestPatchRecord,
+  } from "../../scripts/loadForestData";
+
+  import type {
+    ForestStateChangedDetail,
+  } from "../../scripts/forestState";
+
   /* =======================================================
-     FOREST CAMERA
+     ELEMENT REFERENCES
      ======================================================= */
 
   const stage =
@@ -251,318 +355,1195 @@ console.log("ForestWorld initialized:", {
       "[data-forest-pan-layer]",
     );
 
-  if (!stage) {
+  const forestWorld =
+    document.querySelector<HTMLElement>(
+      "[data-forest-world]",
+    );
+
+  const emptyForestState =
+    document.querySelector<HTMLElement>(
+      "[data-empty-forest-state]",
+    );
+
+  const patchTemplate =
+    document.querySelector<HTMLTemplateElement>(
+      "[data-forest-patch-template]",
+    );
+
+  if (
+    !stage ||
+    !panLayer ||
+    !forestWorld
+  ) {
     throw new Error(
-      "The forest stage was not found.",
+      "The forest world elements were not found.",
     );
   }
 
-  const hasPatches =
-    stage.dataset.hasPatches === "true";
+  /* =======================================================
+     SETTINGS
+     ======================================================= */
 
   const allowPan =
-    stage.dataset.allowPan === "true";
+    stage.dataset.allowPan ===
+    "true";
 
-  /*
-    An empty forest intentionally has no pan layer.
-    Stop camera setup after registering the Home behavior.
-  */
+  const horizontalSpacing =
+    Number(
+      stage.dataset
+        .horizontalSpacing,
+    );
 
-  if (!hasPatches || !panLayer) {
-    window.addEventListener(
-      "forest:recenter",
-      () => {
-        console.log(
-          "Forest recenter requested, but the forest is empty.",
+  const verticalSpacing =
+    Number(
+      stage.dataset
+        .verticalSpacing,
+    );
+
+  const paddingLeft =
+    Number(
+      stage.dataset.paddingLeft,
+    );
+
+  const paddingRight =
+    Number(
+      stage.dataset.paddingRight,
+    );
+
+  const paddingTop =
+    Number(
+      stage.dataset.paddingTop,
+    );
+
+  const paddingBottom =
+    Number(
+      stage.dataset.paddingBottom,
+    );
+
+  /* =======================================================
+     MUTABLE WORLD BOUNDS
+     ======================================================= */
+
+  let worldMinX =
+    Number(
+      stage.dataset.minX,
+    );
+
+  let worldMaxX =
+    Number(
+      stage.dataset.maxX,
+    );
+
+  let worldMinY =
+    Number(
+      stage.dataset.minY,
+    );
+
+  let worldMaxY =
+    Number(
+      stage.dataset.maxY,
+    );
+
+  /* =======================================================
+     CAMERA STATE
+     ======================================================= */
+
+  let cameraX = 0;
+  let cameraY = 0;
+
+  let isDragging = false;
+
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+
+  let cameraStartX = 0;
+  let cameraStartY = 0;
+
+  let activePointerId:
+    number | null = null;
+
+  let currentInteractionTool:
+    ForestInteractionTool =
+      "cursor";
+  
+  let pointerTravelDistance = 0;
+  
+  let didDragDuringPointer = false;
+  
+  let suppressNextPatchClick = false;
+  
+  const DRAG_THRESHOLD = 6;
+
+  /* =======================================================
+     GENERAL HELPERS
+     ======================================================= */
+
+  function clamp(
+    value: number,
+    minimum: number,
+    maximum: number,
+  ) {
+    return Math.min(
+      Math.max(
+        value,
+        minimum,
+      ),
+      maximum,
+    );
+  }
+
+  function hexToWorld(
+    q: number,
+    r: number,
+  ) {
+    return {
+      x:
+        q *
+          horizontalSpacing +
+        r *
+          (
+            horizontalSpacing /
+            2
+          ),
+
+      y:
+        r *
+        verticalSpacing,
+    };
+  }
+
+  function normalizeStyle(
+    patchStyle: string,
+  ): string {
+    return patchStyle
+      .trim()
+      .padStart(2, "0");
+  }
+
+  /* =======================================================
+     WORLD BOUNDS
+     ======================================================= */
+
+  function recalculateWorldBounds() {
+    const patchElements =
+      Array.from(
+        forestWorld.querySelectorAll<HTMLElement>(
+          ".forest-patch",
+        ),
+      );
+
+    if (
+      patchElements.length === 0
+    ) {
+      worldMinX = 0;
+      worldMaxX = 0;
+      worldMinY = 0;
+      worldMaxY = 0;
+
+      stage.dataset.minX =
+        "0";
+
+      stage.dataset.maxX =
+        "0";
+
+      stage.dataset.minY =
+        "0";
+
+      stage.dataset.maxY =
+        "0";
+
+      return;
+    }
+
+    const minimumXValues:
+      number[] = [];
+
+    const maximumXValues:
+      number[] = [];
+
+    const minimumYValues:
+      number[] = [];
+
+    const maximumYValues:
+      number[] = [];
+
+    for (
+      const patchElement of
+      patchElements
+    ) {
+      const x =
+        Number.parseFloat(
+          patchElement.style.left,
+        );
+
+      const y =
+        Number.parseFloat(
+          patchElement.style.top,
+        );
+
+      const width =
+        Number.parseFloat(
+          patchElement.style.width,
+        );
+
+      const height =
+        Number.parseFloat(
+          patchElement.style.height,
+        );
+
+      if (
+        !Number.isFinite(x) ||
+        !Number.isFinite(y) ||
+        !Number.isFinite(width) ||
+        !Number.isFinite(height)
+      ) {
+        continue;
+      }
+
+      minimumXValues.push(
+        x - width / 2,
+      );
+
+      maximumXValues.push(
+        x + width / 2,
+      );
+
+      minimumYValues.push(
+        y - height / 2,
+      );
+
+      maximumYValues.push(
+        y + height / 2,
+      );
+    }
+
+    if (
+      minimumXValues.length ===
+      0
+    ) {
+      return;
+    }
+
+    worldMinX =
+      Math.min(
+        ...minimumXValues,
+      );
+
+    worldMaxX =
+      Math.max(
+        ...maximumXValues,
+      );
+
+    worldMinY =
+      Math.min(
+        ...minimumYValues,
+      );
+
+    worldMaxY =
+      Math.max(
+        ...maximumYValues,
+      );
+
+    stage.dataset.minX =
+      String(worldMinX);
+
+    stage.dataset.maxX =
+      String(worldMaxX);
+
+    stage.dataset.minY =
+      String(worldMinY);
+
+    stage.dataset.maxY =
+      String(worldMaxY);
+
+    console.log(
+      "Forest world bounds recalculated:",
+      {
+        worldMinX,
+        worldMaxX,
+        worldMinY,
+        worldMaxY,
+      },
+    );
+  }
+
+  /* =======================================================
+     PATCH LAYERING
+  
+     Visual priority:
+     1. Lower rows appear in front of upper rows.
+     2. Within the same row, rightmost patches appear in front.
+     3. DOM insertion order does not affect visual stacking.
+     ======================================================= */
+  
+  function updatePatchLayering() {
+    const patchElements =
+      Array.from(
+        forestWorld.querySelectorAll<HTMLElement>(
+          ".forest-patch",
+        ),
+      );
+  
+    const positionedElements =
+      patchElements
+        .map((patchElement) => {
+          const x =
+            Number.parseFloat(
+              patchElement.style.left,
+            );
+  
+          const y =
+            Number.parseFloat(
+              patchElement.style.top,
+            );
+  
+          return {
+            patchElement,
+            x,
+            y,
+          };
+        })
+        .filter(
+          (record) =>
+            Number.isFinite(record.x) &&
+            Number.isFinite(record.y),
+        );
+  
+    positionedElements.sort(
+      (
+        firstPatch,
+        secondPatch,
+      ) => {
+        /*
+          Lower rows receive the higher layer.
+        */
+  
+        if (
+          firstPatch.y !==
+          secondPatch.y
+        ) {
+          return (
+            firstPatch.y -
+            secondPatch.y
+          );
+        }
+  
+        /*
+          On the same row, the rightmost patch receives the
+          higher layer.
+        */
+  
+        return (
+          firstPatch.x -
+                 secondPatch.x
         );
       },
     );
-  } else {
-    const worldMinX =
-      Number(stage.dataset.minX);
-
-    const worldMaxX =
-      Number(stage.dataset.maxX);
-
-    const worldMinY =
-      Number(stage.dataset.minY);
-
-    const worldMaxY =
-      Number(stage.dataset.maxY);
-
-    const paddingLeft =
-      Number(stage.dataset.paddingLeft);
-
-    const paddingRight =
-      Number(stage.dataset.paddingRight);
-
-    const paddingTop =
-      Number(stage.dataset.paddingTop);
-
-    const paddingBottom =
-      Number(stage.dataset.paddingBottom);
-
-    let cameraX = 0;
-    let cameraY = 0;
-
-    let isDragging = false;
-
-    let pointerStartX = 0;
-    let pointerStartY = 0;
-
-    let cameraStartX = 0;
-    let cameraStartY = 0;
-
-    let activePointerId:
-      number | null = null;
-
-    function clamp(
-      value: number,
-      minimum: number,
-      maximum: number,
-    ) {
-      return Math.min(
-        Math.max(value, minimum),
-        maximum,
-      );
-    }
-
-    function getCameraBounds() {
-      const viewportWidth =
-        stage.clientWidth;
-
-      const viewportHeight =
-        stage.clientHeight;
-
-      const centerX =
-        viewportWidth / 2;
-
-      const centerY =
-        viewportHeight / 2;
-
-      let minimumCameraX =
-        viewportWidth -
-        paddingRight -
-        centerX -
-        worldMaxX;
-
-      let maximumCameraX =
-        paddingLeft -
-        centerX -
-        worldMinX;
-
-      let minimumCameraY =
-        viewportHeight -
-        paddingBottom -
-        centerY -
-        worldMaxY;
-
-      let maximumCameraY =
-        paddingTop -
-        centerY -
-        worldMinY;
-
-      /*
-        If the world is smaller than the available viewport,
-        keep it centered along that axis.
-      */
-
-      if (
-        minimumCameraX >
-        maximumCameraX
-      ) {
-        minimumCameraX = 0;
-        maximumCameraX = 0;
-      }
-
-      if (
-        minimumCameraY >
-        maximumCameraY
-      ) {
-        minimumCameraY = 0;
-        maximumCameraY = 0;
-      }
-
-      return {
-        minimumCameraX,
-        maximumCameraX,
-        minimumCameraY,
-        maximumCameraY,
-      };
-    }
-
-    function constrainCamera() {
-      const bounds =
-        getCameraBounds();
-
-      cameraX = clamp(
-        cameraX,
-        bounds.minimumCameraX,
-        bounds.maximumCameraX,
-      );
-
-      cameraY = clamp(
-        cameraY,
-        bounds.minimumCameraY,
-        bounds.maximumCameraY,
-      );
-    }
-
-    function renderCamera() {
-      constrainCamera();
-
-      panLayer.style.transform =
-        `translate3d(${cameraX}px, ${cameraY}px, 0)`;
-    }
-
-    function recenterCamera() {
-      cameraX = 0;
-      cameraY = 0;
-
-      renderCamera();
-
-      console.log(
-        "Forest camera recentered.",
-      );
-    }
-
-    function beginDragging(
-      event: PointerEvent,
-    ) {
-      if (!allowPan) return;
-
-      if (event.button !== 0) {
-        return;
-      }
-
-      const target =
-        event.target as HTMLElement;
-
-      /*
-        Clicking a patch opens its viewer.
-        It must not begin camera dragging.
-      */
-
-      if (
-        target.closest(
-          "[data-patch-viewer-trigger]",
-        )
-      ) {
-        return;
-      }
-
-      isDragging = true;
-      activePointerId = event.pointerId;
-
-      pointerStartX =
-        event.clientX;
-
-      pointerStartY =
-        event.clientY;
-
-      cameraStartX = cameraX;
-      cameraStartY = cameraY;
-
-      stage.setPointerCapture(
-        event.pointerId,
-      );
-
-      stage.classList.add(
-        "is-dragging",
-      );
-    }
-
-    function continueDragging(
-      event: PointerEvent,
-    ) {
-      if (!isDragging) return;
-
-      if (
-        activePointerId !==
-        event.pointerId
-      ) {
-        return;
-      }
-
-      cameraX =
-        cameraStartX +
-        (event.clientX -
-          pointerStartX);
-
-      cameraY =
-        cameraStartY +
-        (event.clientY -
-          pointerStartY);
-
-      renderCamera();
-    }
-
-    function stopDragging(
-      event: PointerEvent,
-    ) {
-      if (!isDragging) return;
-
-      if (
-        activePointerId !==
-        event.pointerId
-      ) {
-        return;
-      }
-
-      isDragging = false;
-      activePointerId = null;
-
-      stage.classList.remove(
-        "is-dragging",
-      );
-
-      if (
-        stage.hasPointerCapture(
-          event.pointerId,
-        )
-      ) {
-        stage.releasePointerCapture(
-          event.pointerId,
-        );
-      }
-    }
-
-    stage.addEventListener(
-      "pointerdown",
-      beginDragging,
+  
+    positionedElements.forEach(
+      (
+        record,
+        index,
+      ) => {
+        record.patchElement.style.zIndex =
+          String(index + 1);
+  
+        record.patchElement.dataset
+          .baseLayer =
+          String(index + 1);
+      },
     );
-
-    stage.addEventListener(
-      "pointermove",
-      continueDragging,
+  
+    console.log(
+      "Forest patch layering updated:",
+      positionedElements.map(
+        ({
+          patchElement,
+          x,
+          y,
+        }) => ({
+          patchId:
+            patchElement.dataset
+              .patchId,
+  
+          x,
+          y,
+  
+          layer:
+            patchElement.style
+              .zIndex,
+        }),
+      ),
     );
+  }
+  
+  /* =======================================================
+     CAMERA
+     ======================================================= */
 
-    stage.addEventListener(
-      "pointerup",
-      stopDragging,
-    );
+  function getCameraBounds() {
+    const viewportWidth =
+      stage.clientWidth;
 
-    stage.addEventListener(
-      "pointercancel",
-      stopDragging,
-    );
+    const viewportHeight =
+      stage.clientHeight;
+
+    const centerX =
+      viewportWidth / 2;
+
+    const centerY =
+      viewportHeight / 2;
+
+    let minimumCameraX =
+      viewportWidth -
+      paddingRight -
+      centerX -
+      worldMaxX;
+
+    let maximumCameraX =
+      paddingLeft -
+      centerX -
+      worldMinX;
+
+    let minimumCameraY =
+      viewportHeight -
+      paddingBottom -
+      centerY -
+      worldMaxY;
+
+    let maximumCameraY =
+      paddingTop -
+      centerY -
+      worldMinY;
 
     /*
-      The Home button will dispatch this custom event.
+      When the world is smaller than the viewport, keep it
+      centered on that axis.
     */
 
-    window.addEventListener(
-      "forest:recenter",
-      recenterCamera,
+    if (
+      minimumCameraX >
+      maximumCameraX
+    ) {
+      minimumCameraX = 0;
+      maximumCameraX = 0;
+    }
+
+    if (
+      minimumCameraY >
+      maximumCameraY
+    ) {
+      minimumCameraY = 0;
+      maximumCameraY = 0;
+    }
+
+    return {
+      minimumCameraX,
+      maximumCameraX,
+      minimumCameraY,
+      maximumCameraY,
+    };
+  }
+
+  function constrainCamera() {
+    const bounds =
+      getCameraBounds();
+
+    cameraX = clamp(
+      cameraX,
+      bounds.minimumCameraX,
+      bounds.maximumCameraX,
     );
 
-    window.addEventListener(
-      "resize",
-      renderCamera,
+    cameraY = clamp(
+      cameraY,
+      bounds.minimumCameraY,
+      bounds.maximumCameraY,
     );
+  }
+
+  function renderCamera() {
+    constrainCamera();
+
+    panLayer.style.transform =
+      `translate3d(${cameraX}px, ${cameraY}px, 0)`;
+  }
+
+  function recenterCamera() {
+    cameraX = 0;
+    cameraY = 0;
 
     renderCamera();
+
+    console.log(
+      "Forest camera recentered.",
+    );
   }
+
+  /* =======================================================
+     DRAGGING
+     ======================================================= */
+
+  function beginDragging(
+    event: PointerEvent,
+  ) {
+    if (
+      !allowPan ||
+      currentInteractionTool !==
+        "pan"
+    ) {
+      return;
+    }
+  
+    if (event.button !== 0) {
+      return;
+    }
+  
+    isDragging = true;
+  
+    didDragDuringPointer =
+      false;
+  
+    pointerTravelDistance =
+      0;
+  
+    activePointerId =
+      event.pointerId;
+  
+    pointerStartX =
+      event.clientX;
+  
+    pointerStartY =
+      event.clientY;
+  
+    cameraStartX =
+      cameraX;
+  
+    cameraStartY =
+      cameraY;
+  
+    stage.setPointerCapture(
+      event.pointerId,
+    );
+  
+    stage.classList.add(
+      "is-dragging",
+    );
+  
+    event.preventDefault();
+  }
+
+  function continueDragging(
+    event: PointerEvent,
+  ) {
+    if (
+      !isDragging ||
+      activePointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+  
+    const differenceX =
+      event.clientX -
+      pointerStartX;
+  
+    const differenceY =
+      event.clientY -
+      pointerStartY;
+  
+    pointerTravelDistance =
+      Math.hypot(
+        differenceX,
+        differenceY,
+      );
+  
+    if (
+      pointerTravelDistance >=
+      DRAG_THRESHOLD
+    ) {
+      didDragDuringPointer =
+        true;
+    }
+  
+    cameraX =
+      cameraStartX +
+      differenceX;
+  
+    cameraY =
+      cameraStartY +
+      differenceY;
+  
+    renderCamera();
+  }
+
+  function stopDragging(
+    event: PointerEvent,
+  ) {
+    if (
+      !isDragging ||
+      activePointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+  
+    isDragging = false;
+    activePointerId = null;
+  
+    stage.classList.remove(
+      "is-dragging",
+    );
+  
+    if (
+      didDragDuringPointer
+    ) {
+      suppressNextPatchClick =
+        true;
+  
+      window.setTimeout(
+        () => {
+          suppressNextPatchClick =
+            false;
+        },
+        0,
+      );
+    }
+  
+    if (
+      stage.hasPointerCapture(
+        event.pointerId,
+      )
+    ) {
+      stage.releasePointerCapture(
+        event.pointerId,
+      );
+    }
+  }
+
+  function suppressPatchInteraction(
+    event: MouseEvent,
+  ) {
+    const target =
+      event.target as HTMLElement;
+  
+    const patch =
+      target.closest(
+        "[data-patch-viewer-trigger]",
+      );
+  
+    if (!patch) {
+      return;
+    }
+  
+    if (
+      currentInteractionTool ===
+        "pan" ||
+      suppressNextPatchClick
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+  
+      suppressNextPatchClick =
+        false;
+  
+      console.log(
+        "Patch interaction suppressed while panning.",
+      );
+    }
+  }
+  
+  function suppressPatchKeyboardInteraction(
+    event: KeyboardEvent,
+  ) {
+    if (
+      currentInteractionTool !==
+        "pan"
+    ) {
+      return;
+    }
+  
+    if (
+      event.key !== "Enter" &&
+      event.key !== " "
+    ) {
+      return;
+    }
+  
+    const target =
+      event.target as HTMLElement;
+  
+    if (
+      !target.closest(
+        "[data-patch-viewer-trigger]",
+      )
+    ) {
+      return;
+    }
+  
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  }
+
+  /* =======================================================
+     PATCH VIEWER
+     ======================================================= */
+
+  function openPatchViewer(
+    patchId: string,
+  ) {
+    window.dispatchEvent(
+      new CustomEvent(
+        "patch-viewer:open",
+        {
+          detail: {
+            patchId,
+          },
+        },
+      ),
+    );
+
+    console.log(
+      "Dynamic patch viewer requested:",
+      {
+        patchId,
+      },
+    );
+  }
+
+  function connectDynamicPatch(
+    patchElement: HTMLElement,
+  ) {
+    const patchId =
+      patchElement.dataset
+        .patchId;
+
+    if (!patchId) {
+      return;
+    }
+
+    patchElement.addEventListener(
+      "click",
+      () => {
+        openPatchViewer(
+          patchId,
+        );
+      },
+    );
+
+    patchElement.addEventListener(
+      "keydown",
+      (event) => {
+        if (
+          event.key !==
+            "Enter" &&
+          event.key !==
+            " "
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+
+        openPatchViewer(
+          patchId,
+        );
+      },
+    );
+  }
+
+  /* =======================================================
+     DYNAMIC PATCH CREATION
+     ======================================================= */
+
+  function createPatchElement(
+    patch: ForestPatchRecord,
+  ):
+    | HTMLElement
+    | null {
+    const templatePatch =
+      patchTemplate?.content
+        .querySelector<HTMLElement>(
+          ".forest-patch",
+        );
+
+    if (!templatePatch) {
+      console.error(
+        "The forest patch template was not found.",
+      );
+
+      return null;
+    }
+
+    const patchElement =
+      templatePatch.cloneNode(
+        true,
+      ) as HTMLElement;
+
+    const normalizedStyle =
+      normalizeStyle(
+        patch.Patch_Style,
+      );
+
+    const position =
+      hexToWorld(
+        patch.Hex_Q,
+        patch.Hex_R,
+      );
+
+    patchElement.dataset.patchId =
+      patch.Patch_ID;
+
+    patchElement.dataset.patchName =
+      patch.Patch_Name;
+
+    patchElement.dataset.patchStyle =
+      normalizedStyle;
+
+    patchElement.dataset.patchDescription =
+      patch.Patch_Description;
+
+    patchElement.dataset.patchSaplings =
+      String(
+        patch.Saplings_Planted,
+      );
+
+    patchElement.dataset.patchTrees =
+      String(
+        patch.Trees_Grown,
+      );
+
+    patchElement.style.left =
+      `${position.x}px`;
+
+    patchElement.style.top =
+      `${position.y}px`;
+
+    const groundImage =
+      patchElement.querySelector<HTMLImageElement>(
+        ".ground-patch",
+      );
+
+    if (groundImage) {
+      groundImage.src =
+        `/assets/grounds/Ground_${normalizedStyle}.png`;
+
+      groundImage.alt =
+        patch.Patch_Name;
+    }
+
+    const patchLabel =
+      patchElement.querySelector<HTMLElement>(
+        ".patch-label",
+      );
+
+    if (patchLabel) {
+      patchLabel.textContent =
+        patch.Patch_Name;
+    }
+
+    const patchDescription =
+      patchElement.querySelector<HTMLElement>(
+        ".patch-description",
+      );
+
+    if (patchDescription) {
+      patchDescription.textContent =
+        patch.Patch_Description ||
+        "No patch description has been provided.";
+    }
+
+    patchElement.classList.add(
+      "is-newly-added",
+    );
+
+    connectDynamicPatch(
+      patchElement,
+    );
+
+    window.setTimeout(
+      () => {
+        patchElement.classList.remove(
+          "is-newly-added",
+        );
+      },
+      700,
+    );
+
+    return patchElement;
+  }
+
+  function addPatchToWorld(
+    patch: ForestPatchRecord,
+  ) {
+    const existingPatch =
+      forestWorld.querySelector<HTMLElement>(
+        `[data-patch-id="${CSS.escape(
+          patch.Patch_ID,
+        )}"]`,
+      );
+
+    if (existingPatch) {
+      console.warn(
+        "The patch already exists in the forest world:",
+        patch.Patch_ID,
+      );
+
+      return;
+    }
+
+    const patchElement =
+      createPatchElement(
+        patch,
+      );
+
+    if (!patchElement) {
+      return;
+    }
+
+    forestWorld.append(
+      patchElement,
+    );
+
+    stage.dataset.hasPatches =
+      "true";
+
+    stage.classList.remove(
+      "is-empty",
+    );
+
+    if (emptyForestState) {
+      emptyForestState.hidden =
+        true;
+    }
+
+    recalculateWorldBounds();
+    updatePatchLayering();
+    recenterCamera();
+
+    console.log(
+      "Temporary patch rendered in forest world:",
+      patch,
+    );
+  }
+
+  /* =======================================================
+     FOREST STATE EVENTS
+     ======================================================= */
+
+  window.addEventListener(
+    "forest:state-changed",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<
+          ForestStateChangedDetail
+        >;
+
+      const detail =
+        customEvent.detail;
+
+      if (
+        !detail ||
+        detail.reason !==
+          "patch-added"
+      ) {
+        return;
+      }
+
+      const patches =
+        detail.snapshot.patches;
+
+      const newestPatch =
+        patches[
+          patches.length - 1
+        ];
+
+      if (!newestPatch) {
+        return;
+      }
+
+      addPatchToWorld(
+        newestPatch,
+      );
+    },
+  );
+
+  /*
+    AddPatchDialog also dispatches this more specific event.
+    It is retained as a fallback in case another state event
+    listener is introduced later.
+  */
+
+  window.addEventListener(
+    "forest:patch-added",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<{
+          patch?:
+            ForestPatchRecord;
+        }>;
+
+      const patch =
+        customEvent.detail
+          ?.patch;
+
+      if (!patch) {
+        return;
+      }
+
+      addPatchToWorld(
+        patch,
+      );
+    },
+  );
+
+  /* =======================================================
+     INTERACTION TOOL EVENTS
+     ======================================================= */
+  
+  window.addEventListener(
+    "forest:interaction-tool-changed",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<
+          ForestInteractionToolChangedDetail
+        >;
+  
+      const tool =
+        customEvent.detail?.tool;
+  
+      if (
+        tool !== "cursor" &&
+        tool !== "pan"
+      ) {
+        return;
+      }
+  
+      currentInteractionTool =
+        tool;
+  
+      stage.dataset
+        .interactionTool =
+        tool;
+  
+      /*
+        A patch clicked in Cursor mode can remain focused.
+        Remove that focus when Pan or temporary Shift-pan begins
+        so its keyboard outline does not reappear.
+      */
+      
+      if (tool === "pan") {
+        const activeElement =
+          document.activeElement;
+      
+        if (
+          activeElement instanceof
+            HTMLElement &&
+          activeElement.matches(
+            "[data-patch-viewer-trigger]",
+          )
+        ) {
+          activeElement.blur();
+        }
+      }
+
+      stage.classList.toggle(
+        "is-cursor-tool",
+        tool === "cursor",
+      );
+  
+      stage.classList.toggle(
+        "is-pan-tool",
+        tool === "pan",
+      );
+  
+      if (
+        tool !== "pan" &&
+        isDragging
+      ) {
+        isDragging = false;
+        activePointerId = null;
+  
+        stage.classList.remove(
+          "is-dragging",
+        );
+      }
+  
+      console.log(
+        "ForestWorld interaction tool applied:",
+        customEvent.detail,
+      );
+    },
+  );
+
+  /* =======================================================
+     CAMERA EVENTS
+     ======================================================= */
+
+  stage.addEventListener(
+    "click",
+    suppressPatchInteraction,
+    true,
+  );
+  
+  stage.addEventListener(
+    "keydown",
+    suppressPatchKeyboardInteraction,
+    true,
+  );
+
+  stage.addEventListener(
+    "pointerdown",
+    beginDragging,
+  );
+
+  stage.addEventListener(
+    "pointermove",
+    continueDragging,
+  );
+
+  stage.addEventListener(
+    "pointerup",
+    stopDragging,
+  );
+
+  stage.addEventListener(
+    "pointercancel",
+    stopDragging,
+  );
+
+  window.addEventListener(
+    "forest:recenter",
+    recenterCamera,
+  );
+
+  window.addEventListener(
+    "resize",
+    renderCamera,
+  );
+
+  /* =======================================================
+     INITIALIZATION
+     ======================================================= */
+
+  stage.dataset.interactionTool =
+    "cursor";
+  
+  stage.classList.add(
+    "is-cursor-tool",
+  );
+
+  recalculateWorldBounds();
+  updatePatchLayering();
+  renderCamera();
 </script>
 
 <style>
@@ -572,21 +1553,60 @@ console.log("ForestWorld initialized:", {
 
     overflow: hidden;
 
-    cursor: -webkit-grab;
-    cursor: grab;
-
     user-select: none;
     touch-action: none;
   }
 
-  .forest-stage.is-dragging {
-    cursor: -webkit-grabbing;
-    cursor: grabbing;
+  /* =======================================================
+     INTERACTION CURSORS
+     ======================================================= */
+  
+  .forest-stage.is-cursor-tool,
+  .forest-stage.is-cursor-tool
+  :global(.forest-patch),
+  .forest-stage.is-cursor-tool
+  :global(.ground-patch) {
+    cursor: default !important;
   }
-
+  
+  .forest-stage.is-pan-tool,
+  .forest-stage.is-pan-tool
+  :global(.forest-patch),
+  .forest-stage.is-pan-tool
+  :global(.ground-patch) {
+    cursor:
+      -webkit-grab !important;
+  
+    cursor: grab !important;
+  }
+  
+  .forest-stage.is-dragging,
+  .forest-stage.is-dragging
+  :global(.forest-patch),
+  .forest-stage.is-dragging
+  :global(.ground-patch) {
+    cursor:
+      -webkit-grabbing !important;
+  
+    cursor: grabbing !important;
+  }
+  
   .forest-stage.is-pan-disabled,
   .forest-stage.is-empty {
-    cursor: default;
+    cursor: default !important;
+  }
+  
+  /*
+    A patch can remain keyboard-focused after it was clicked.
+    Hide its focus outline while the Pan tool is active.
+  */
+  
+  .forest-stage.is-pan-tool
+  :global(.forest-patch:focus-visible),
+  .forest-stage.is-pan-tool
+  :global(.forest-patch:focus-within) {
+    outline: none !important;
+    outline-offset: 0 !important;
   }
 
   .forest-pan-layer {
@@ -597,11 +1617,12 @@ console.log("ForestWorld initialized:", {
     width: 0;
     height: 0;
 
-    transform: translate3d(
-      0,
-      0,
-      0
-    );
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      );
 
     will-change: transform;
   }
@@ -617,7 +1638,90 @@ console.log("ForestWorld initialized:", {
 
   .forest-stage :global(img) {
     user-select: none;
+
     -webkit-user-drag: none;
+  }
+  
+  /* =======================================================
+     HOVER AND KEYBOARD-FOCUS PRIORITY
+  
+     The normal layer is restored automatically when hover or
+     keyboard focus leaves the patch because the inline z-index
+     remains unchanged.
+     ======================================================= */
+  
+  .forest-stage.is-cursor-tool
+  :global(.forest-patch:hover),
+  .forest-stage.is-cursor-tool
+  :global(.forest-patch:focus-visible),
+  .forest-stage.is-cursor-tool
+  :global(.forest-patch:focus-within) {
+    z-index: 100000 !important;
+  }
+  
+  .forest-stage.is-cursor-tool
+  :global(.forest-patch:hover .patch-label),
+  .forest-stage.is-cursor-tool
+  :global(.forest-patch:hover .patch-description),
+  .forest-stage.is-cursor-tool
+  :global(.forest-patch:focus-visible .patch-label),
+  .forest-stage.is-cursor-tool
+  :global(.forest-patch:focus-visible .patch-description) {
+    z-index: 100001 !important;
+  }
+
+  /* =======================================================
+     NEW PATCH ANIMATION
+     ======================================================= */
+
+  .forest-stage
+  :global(
+    .forest-patch.is-newly-added
+  ) {
+    animation:
+      patch-planted
+      650ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+  }
+
+  @keyframes patch-planted {
+    0% {
+      opacity: 0;
+
+      transform:
+        translate(
+          -50%,
+          -50%
+        )
+        scale(0.55);
+    }
+
+    70% {
+      opacity: 1;
+
+      transform:
+        translate(
+          -50%,
+          -50%
+        )
+        scale(1.06);
+    }
+
+    100% {
+      opacity: 1;
+
+      transform:
+        translate(
+          -50%,
+          -50%
+        )
+        scale(1);
+    }
   }
 
   /* =======================================================
@@ -632,33 +1736,61 @@ console.log("ForestWorld initialized:", {
     place-items: center;
 
     padding: 40px;
+
     text-align: center;
+  }
+
+  .empty-forest-state[hidden] {
+    display: none !important;
   }
 
   .empty-forest-state p {
     margin: 0;
-    padding: 18px 28px;
 
-    border: 1px solid
-      rgba(47, 99, 116, 0.24);
+    padding:
+      18px 28px;
+
+    border:
+      1px solid
+      rgba(
+        47,
+        99,
+        116,
+        0.24
+      );
 
     border-radius: 16px;
 
     background:
-      rgba(255, 255, 255, 0.58);
+      rgba(
+        255,
+        255,
+        255,
+        0.58
+      );
 
     box-shadow:
       0 10px 28px
-      rgba(31, 79, 96, 0.12);
+      rgba(
+        31,
+        79,
+        96,
+        0.12
+      );
 
     color: #2d5968;
 
     font-size:
-      clamp(20px, 2.5vw, 32px);
+      clamp(
+        20px,
+        2.5vw,
+        32px
+      );
 
     font-weight: 700;
     line-height: 1.3;
 
-    backdrop-filter: blur(4px);
+    backdrop-filter:
+      blur(4px);
   }
 </style>
