@@ -1,12 +1,12 @@
-# My Skill Forest
+# The Skill Forest
 
 <p align="center">
-  <img src="public/assets/Sample_Screenshot.png" alt="Sample view of My Skill Forest" width="900">
+  <img src="public/assets/Sample_Screenshot.png" alt="Sample view of The Skill Forest" width="900">
 </p>
 
 ## About
 
-**My Skill Forest** is a playful, interactive companion to a larger professional portfolio.
+**The Skill Forest** is a playful, interactive companion to a larger professional portfolio.
 
 Instead of presenting every skill as another line in a list, the project imagines learning as a growing landscape. Broad areas of knowledge become **forest patches**, individual skills begin as **saplings**, and evidence of real work allows those saplings to mature into trees.
 
@@ -18,7 +18,7 @@ This repository is the reusable version of the project. It includes sample data,
 
 ## How to Use
 
-My Skill Forest has two operating experiences:
+The Skill Forest has two operating experiences:
 
 - **Strolling Mode** for browsing and viewing
 - **Planting Mode** for local owner editing

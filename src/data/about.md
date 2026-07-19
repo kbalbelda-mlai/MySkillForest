@@ -1,4 +1,4 @@
-My Skill Forest is a visual learning portfolio where every planted tree represents a skill.
+The Skill Forest is a visual learning portfolio where every planted tree represents a skill.
 
 A newly planted skill begins as a sapling. It becomes a mature tree only when its matching evidence folder contains a real file, such as a project, certificate, notebook, report, or learning note.
 
