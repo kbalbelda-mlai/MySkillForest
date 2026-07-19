@@ -31,7 +31,7 @@ const {
 } = Astro.props;
 
 const normalizedStyle = patchStyle.padStart(2, "0");
-const groundPath = `/assets/grounds/Ground_${normalizedStyle}.png`;
+const groundPath = `${import.meta.env.BASE_URL}assets/grounds/Ground_${normalizedStyle}.png`;
 
 const nativePatchSize = 945;
 const displaySize = nativePatchSize * scale;

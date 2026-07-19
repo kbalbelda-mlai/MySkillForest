@@ -148,7 +148,7 @@ const patchStyles =
 
                   <span class="style-preview">
                     <img
-                      src={`/assets/grounds/Ground_${style.styleCode}.png`}
+                      src={`${import.meta.env.BASE_URL}assets/grounds/Ground_${style.styleCode}.png`}
                       alt=""
                       aria-hidden="true"
                       draggable="false"
@@ -1278,7 +1278,7 @@ const patchStyles =
     try {
       const response =
         await fetch(
-          "/api/patches",
+          `${import.meta.env.BASE_URL}api/patches`,
           {
             method: "PUT",
 

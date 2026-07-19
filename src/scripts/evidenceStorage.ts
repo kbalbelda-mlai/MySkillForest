@@ -1,6 +1,7 @@
 import {
   mkdir,
   rm,
+  writeFile,
 } from "node:fs/promises";
 
 import path from "node:path";
@@ -67,10 +68,10 @@ export async function ensurePatchEvidenceFolder(
 ): Promise<string> {
   const relativePath = getPatchEvidenceRelativePath(patchId);
 
-  await mkdir(
-    resolveEvidencePath(relativePath),
-    { recursive: true },
-  );
+  const absolutePath = resolveEvidencePath(relativePath);
+
+  await mkdir(absolutePath, { recursive: true });
+  await writeFile(path.join(absolutePath, ".gitkeep"), "", { flag: "a" });
 
   return relativePath;
 }
@@ -86,10 +87,10 @@ export async function ensureTreeEvidenceFolder(
     treeId,
   );
 
-  await mkdir(
-    resolveEvidencePath(relativePath),
-    { recursive: true },
-  );
+  const absolutePath = resolveEvidencePath(relativePath);
+
+  await mkdir(absolutePath, { recursive: true });
+  await writeFile(path.join(absolutePath, ".gitkeep"), "", { flag: "a" });
 
   return relativePath;
 }
@@ -99,8 +100,10 @@ export async function deleteTreeEvidenceFolder(
   treeId: string,
   storedEvidencePath = "",
 ): Promise<void> {
-  const relativePath = storedEvidencePath.trim() ||
-    getTreeEvidenceRelativePath(patchId, treeId);
+  const storedPath = storedEvidencePath.trim();
+  const relativePath = storedPath.startsWith("evidence/")
+    ? storedPath
+    : getTreeEvidenceRelativePath(patchId, treeId);
 
   await rm(
     resolveEvidencePath(relativePath),

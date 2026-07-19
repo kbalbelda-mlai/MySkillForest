@@ -356,6 +356,8 @@ console.log(
 
   import treeSlots from "../../data/tree_slots.json";
 
+  const baseUrl = import.meta.env.BASE_URL;
+
   import type {
     ForestStateChangedDetail,
   } from "../../scripts/forestState";
@@ -1257,7 +1259,7 @@ console.log(
 
     if (groundImage) {
       groundImage.src =
-        `/assets/grounds/Ground_${normalizedStyle}.png`;
+        `${baseUrl}assets/grounds/Ground_${normalizedStyle}.png`;
 
       groundImage.alt =
         patch.Patch_Name;
@@ -1328,7 +1330,7 @@ console.log(
               : "Sapling";
 
           image.src =
-            `/assets/${folder}/${prefix}_${normalizedStyle}_${variant}.png`;
+            `${baseUrl}assets/${folder}/${prefix}_${normalizedStyle}_${variant}.png`;
         },
       );
 
@@ -1481,7 +1483,7 @@ console.log(
 
     if (groundImage) {
       groundImage.src =
-        `/assets/grounds/Ground_${normalizedStyle}.png`;
+        `${baseUrl}assets/grounds/Ground_${normalizedStyle}.png`;
 
       groundImage.alt =
         patch.Patch_Name;
@@ -1552,7 +1554,7 @@ console.log(
               : "Sapling";
 
           image.src =
-            `/assets/${folder}/${prefix}_${normalizedStyle}_${variant}.png`;
+            `${baseUrl}assets/${folder}/${prefix}_${normalizedStyle}_${variant}.png`;
         },
       );
 
@@ -1732,7 +1734,7 @@ console.log(
 
     if (image) {
       image.src =
-        `/assets/saplings/Sapling_${style}_${treeVariant}.png`;
+        `${baseUrl}assets/saplings/Sapling_${style}_${treeVariant}.png`;
 
       image.alt =
         tree.Tree_Name;

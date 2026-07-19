@@ -815,7 +815,7 @@
     try {
       const response =
         await fetch(
-          "/api/trees",
+          `${import.meta.env.BASE_URL}api/trees`,
           {
             method: "POST",
 

@@ -47,7 +47,7 @@ const assetFolder =
   growthStage === "TREE" ? "trees" : "saplings";
 
 const assetPath =
-  `/assets/${assetFolder}/${assetPrefix}_${normalizedPatchStyle}_${normalizedTreeStyle}.png`;
+  `${import.meta.env.BASE_URL}assets/${assetFolder}/${assetPrefix}_${normalizedPatchStyle}_${normalizedTreeStyle}.png`;
 
 const nativeWidth = growthStage === "TREE" ? 295 : 177;
 const nativeHeight = growthStage === "TREE" ? 414 : 236;

@@ -1,11 +1,30 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig } from "astro/config";
+import node from "@astrojs/node";
 
-import node from '@astrojs/node';
+export default defineConfig(({ command }) => {
+  const repository = process.env.GITHUB_REPOSITORY ?? "";
+  const [owner = "", repositoryName = ""] = repository.split("/");
+  const isUserSite = repositoryName.endsWith(".github.io");
 
-// https://astro.build/config
-export default defineConfig({
-  adapter: node({
-    mode: 'standalone'
-  })
+  const site = process.env.PUBLIC_SITE_URL ||
+    (owner ? `https://${owner}.github.io` : "http://localhost:4321");
+
+  const base = process.env.PUBLIC_BASE_PATH ||
+    (repositoryName && !isUserSite ? `/${repositoryName}` : "/");
+
+  if (command === "dev") {
+    return {
+      output: "server",
+      adapter: node({ mode: "standalone" }),
+      site,
+      base: "/",
+    };
+  }
+
+  return {
+    output: "static",
+    site,
+    base,
+  };
 });

@@ -18,6 +18,8 @@ import DeletePatchDialog from "../components/dialogs/DeletePatchDialog.astro";
    ========================================================= */
 
 const pageTitle = "My Skill Forest";
+const isOwnerMode = import.meta.env.DEV;
+const baseUrl = import.meta.env.BASE_URL;
 
 const {
   patches: forestPatches,
@@ -38,6 +40,8 @@ console.log("Index page forest data:", {
   <head>
     <meta charset="utf-8" />
 
+    <base href={baseUrl} />
+
     <meta
       name="viewport"
       content="width=device-width"
@@ -46,7 +50,7 @@ console.log("Index page forest data:", {
     <title>{pageTitle}</title>
   </head>
 
-  <body data-current-mode="strolling">
+  <body data-current-mode="strolling" data-owner-mode={String(isOwnerMode)}>
     <script
       id="initial-forest-patches"
       type="application/json"
@@ -243,7 +247,7 @@ console.log("Index page forest data:", {
             <span class="mode-toggle-image-frame">
               <img
                 class="mode-toggle-image is-visible"
-                src="/assets/ui/Mode_Button_Stroll.png"
+                src="assets/ui/Mode_Button_Stroll.png"
                 alt=""
                 aria-hidden="true"
                 draggable="false"
@@ -252,7 +256,7 @@ console.log("Index page forest data:", {
       
               <img
                 class="mode-toggle-image"
-                src="/assets/ui/Mode_Button_Plant.png"
+                src="assets/ui/Mode_Button_Plant.png"
                 alt=""
                 aria-hidden="true"
                 draggable="false"
@@ -288,7 +292,7 @@ console.log("Index page forest data:", {
             data-interaction-tool="cursor"
           >
             <img
-              src="/assets/ui/Tool_Cursor.png"
+              src="assets/ui/Tool_Cursor.png"
               alt=""
               aria-hidden="true"
               draggable="false"
@@ -310,7 +314,7 @@ console.log("Index page forest data:", {
             data-interaction-tool="pan"
           >
             <img
-              src="/assets/ui/Tool_Pan.png"
+              src="assets/ui/Tool_Pan.png"
               alt=""
               aria-hidden="true"
               draggable="false"
@@ -1477,6 +1481,12 @@ console.log("Index page forest data:", {
     background: #a72f2f; color: white; border-color: #7c2020;
   }
 
+
+  body[data-owner-mode="false"] .mode-toggle-area,
+  body[data-owner-mode="false"] .patch-operations {
+    display: none !important;
+  }
+
   /* =======================================================
      RESPONSIVE HEADER AND CONTROLS
      ======================================================= */
@@ -1738,6 +1748,8 @@ console.log("Index page forest data:", {
       "[data-tree-search-result]",
     ),
   );
+
+  const isOwnerMode = document.body.dataset.ownerMode === "true";
 
   let currentMode:
     ForestMode = "strolling";
@@ -2136,6 +2148,10 @@ console.log("Index page forest data:", {
     mode: ForestMode,
     animate = true,
   ) {
+    if (!isOwnerMode) {
+      mode = "strolling";
+    }
+
     currentMode = mode;
 
     pageBody.dataset.currentMode =
@@ -2213,6 +2229,8 @@ console.log("Index page forest data:", {
   }
 
   function toggleForestMode() {
+    if (!isOwnerMode) return;
+
     const nextMode:
       ForestMode =
         currentMode === "strolling"
@@ -2359,6 +2377,7 @@ console.log("Index page forest data:", {
     "click",
     () => {
       if (
+        !isOwnerMode ||
         currentMode !== "planting"
       ) {
         return;
@@ -2389,7 +2408,7 @@ console.log("Index page forest data:", {
   }
 
   deletePatchButton?.addEventListener("click", () => {
-    if (currentMode !== "planting") return;
+    if (!isOwnerMode || currentMode !== "planting") return;
     closeSearchResults();
     setDeletePatchSelection(true);
   });
