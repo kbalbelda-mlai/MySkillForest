@@ -10,7 +10,7 @@
     "prepare:owner": "node scripts/prepareOwnerMode.mjs",
     "prepare:public": "node scripts/preparePublicMode.mjs",
     "sync:evidence": "node scripts/syncEvidence.mjs",
-    "dev": "npm run prepare:owner && astro dev",
+    "dev": "npm run prepare:owner && astro dev --config astro.owner.config.mjs",
     "build": "npm run prepare:public && npm run sync:evidence && astro build",
     "preview": "astro preview",
     "check": "astro check",
