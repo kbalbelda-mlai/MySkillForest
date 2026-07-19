@@ -3,28 +3,20 @@ import { defineConfig } from "astro/config";
 import node from "@astrojs/node";
 
 export default defineConfig(({ command }) => {
-  const repository = process.env.GITHUB_REPOSITORY ?? "";
-  const [owner = "", repositoryName = ""] = repository.split("/");
-  const isUserSite = repositoryName.endsWith(".github.io");
-
-  const site = process.env.PUBLIC_SITE_URL ||
-    (owner ? `https://${owner}.github.io` : "http://localhost:4321");
-
-  const base = process.env.PUBLIC_BASE_PATH ||
-    (repositoryName && !isUserSite ? `/${repositoryName}` : "/");
-
   if (command === "dev") {
     return {
       output: "server",
-      adapter: node({ mode: "standalone" }),
-      site,
+      adapter: node({
+        mode: "standalone",
+      }),
+      site: "http://localhost:4321",
       base: "/",
     };
   }
 
   return {
     output: "static",
-    site,
-    base,
+    site: "https://kbalbelda-mlai.github.io",
+    base: "/MySkillForest",
   };
 });
