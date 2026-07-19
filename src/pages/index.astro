@@ -8,6 +8,7 @@ import PatchViewerDialog from "../components/dialogs/PatchViewerDialog.astro";
 import AboutDialog from "../components/dialogs/AboutDialog.astro";
 import AddPatchDialog from "../components/dialogs/AddPatchDialog.astro";
 import EditPatchDialog from "../components/dialogs/EditPatchDialog.astro";
+import PlantTreeDialog from "../components/dialogs/PlantTreeDialog.astro";
 
 /* =========================================================
    PAGE DATA
@@ -20,7 +21,7 @@ const {
   trees,
   statistics,
   treeSearchIndex,
-} = loadForestData();
+} = await loadForestData();
 
 console.log("Index page forest data:", {
   forestPatches,
@@ -357,6 +358,8 @@ console.log("Index page forest data:", {
     <AddPatchDialog />
 
     <EditPatchDialog />
+
+    <PlantTreeDialog />
   </body>
 </html>
 
@@ -1581,6 +1584,10 @@ console.log("Index page forest data:", {
     mode: ForestMode;
   }
 
+  interface ForestModeRequestDetail {
+    mode: ForestMode;
+  }
+
   /* =======================================================
      ELEMENT REFERENCES
      ======================================================= */
@@ -1705,7 +1712,7 @@ console.log("Index page forest data:", {
       "[data-tree-search-empty]",
     );
 
-  const searchResults = Array.from(
+  let searchResults = Array.from(
     document.querySelectorAll<HTMLButtonElement>(
       "[data-tree-search-result]",
     ),
@@ -2214,13 +2221,79 @@ console.log("Index page forest data:", {
     toggleForestMode,
   );
 
+  window.addEventListener(
+    "forest:request-mode",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<
+          ForestModeRequestDetail
+        >;
+  
+      const requestedMode =
+        customEvent.detail?.mode;
+  
+      if (
+        requestedMode !==
+          "strolling" &&
+        requestedMode !==
+          "planting"
+      ) {
+        return;
+      }
+  
+      applyForestMode(
+        requestedMode,
+        false,
+      );
+  
+      console.log(
+        "Forest mode explicitly requested:",
+        {
+          mode:
+            requestedMode,
+        },
+      );
+    },
+  );
+
   /* =======================================================
      HOME BUTTON
      ======================================================= */
 
   homeButton?.addEventListener(
     "click",
-    () => {
+    (
+      event,
+    ) => {
+      event.preventDefault();
+      event.stopPropagation();
+  
+      const childDialogOpen =
+        document.querySelector(
+          [
+            "[data-edit-patch-overlay].is-open",
+            "[data-plant-tree-overlay].is-open",
+          ].join(", "),
+        );
+  
+      const patchInspectorOpen =
+        document.querySelector(
+          "[data-patch-viewer-overlay].is-open",
+        );
+  
+      if (
+        childDialogOpen ||
+        patchInspectorOpen
+      ) {
+        console.warn(
+          "Home action ignored while a Patch Inspector operation is open.",
+        );
+  
+        return;
+      }
+
       window.dispatchEvent(
         new CustomEvent(
           "forest:recenter",
@@ -2541,6 +2614,139 @@ console.log("Index page forest data:", {
     );
   }
 
+  function connectSearchResult(
+    result: HTMLButtonElement,
+  ) {
+    result.addEventListener(
+      "click",
+      () => {
+        chooseSearchResult(
+          result,
+        );
+      },
+    );
+
+    result.addEventListener(
+      "mouseenter",
+      () => {
+        const index =
+          visibleResults.indexOf(
+            result,
+          );
+
+        if (index >= 0) {
+          setActiveResult(
+            index,
+          );
+        }
+      },
+    );
+  }
+
+  function addTreeSearchResult(
+    tree: TreeRecord,
+    patch: ForestPatchRecord,
+  ) {
+    if (!resultsPanel) {
+      return;
+    }
+
+    const result =
+      document.createElement(
+        "button",
+      );
+
+    result.className =
+      "tree-search-result";
+
+    result.type =
+      "button";
+
+    result.setAttribute(
+      "role",
+      "option",
+    );
+
+    result.dataset.treeSearchResult =
+      "";
+
+    result.dataset.treeId =
+      tree.Tree_ID;
+
+    result.dataset.treeName =
+      tree.Tree_Name;
+
+    result.dataset.patchId =
+      patch.Patch_ID;
+
+    result.dataset.patchName =
+      patch.Patch_Name;
+
+    result.dataset.normalizedTreeName =
+      normalizeSearchText(
+        tree.Tree_Name,
+      );
+
+    result.dataset.normalizedPatchName =
+      normalizeSearchText(
+        patch.Patch_Name,
+      );
+
+    result.hidden =
+      true;
+
+    const treeNameElement =
+      document.createElement(
+        "span",
+      );
+
+    treeNameElement.className =
+      "search-result-tree-name";
+
+    treeNameElement.textContent =
+      tree.Tree_Name;
+
+    const patchNameElement =
+      document.createElement(
+        "span",
+      );
+
+    patchNameElement.className =
+      "search-result-patch-name";
+
+    patchNameElement.textContent =
+      patch.Patch_Name;
+
+    result.append(
+      treeNameElement,
+      patchNameElement,
+    );
+
+    resultsPanel.insertBefore(
+      result,
+      emptySearchMessage ??
+      null,
+    );
+
+    searchResults.push(
+      result,
+    );
+
+    connectSearchResult(
+      result,
+    );
+
+    console.log(
+      "Tree search result added:",
+      {
+        treeId:
+          tree.Tree_ID,
+        patchId:
+          patch.Patch_ID,
+      },
+    );
+  }
+
   /* =======================================================
      TREE SEARCH EVENTS
      ======================================================= */
@@ -2651,32 +2857,7 @@ console.log("Index page forest data:", {
   );
 
   searchResults.forEach(
-    (result) => {
-      result.addEventListener(
-        "click",
-        () => {
-          chooseSearchResult(
-            result,
-          );
-        },
-      );
-
-      result.addEventListener(
-        "mouseenter",
-        () => {
-          const index =
-            visibleResults.indexOf(
-              result,
-            );
-
-          if (index >= 0) {
-            setActiveResult(
-              index,
-            );
-          }
-        },
-      );
-    },
+    connectSearchResult,
   );
 
   document.addEventListener(
@@ -2713,6 +2894,45 @@ console.log("Index page forest data:", {
 
       if (!statistics) {
         return;
+      }
+
+      if (
+        customEvent.detail
+          ?.reason ===
+        "tree-added"
+      ) {
+        const snapshot =
+          customEvent.detail
+            .snapshot;
+
+        const newestTree =
+          snapshot.trees[
+            snapshot.trees.length - 1
+          ];
+
+        const parentPatch =
+          newestTree
+            ? snapshot.patches.find(
+                (patch) =>
+                  patch.Patch_ID ===
+                  newestTree.Patch_ID,
+              )
+            : undefined;
+
+        if (
+          newestTree &&
+          parentPatch &&
+          !searchResults.some(
+            (result) =>
+              result.dataset.treeId ===
+              newestTree.Tree_ID,
+          )
+        ) {
+          addTreeSearchResult(
+            newestTree,
+            parentPatch,
+          );
+        }
       }
 
       if (
@@ -2795,6 +3015,44 @@ console.log("Index page forest data:", {
       console.log(
         "Header statistics updated:",
         statistics,
+      );
+    },
+  );
+
+  window.addEventListener(
+    "forest:tree-added",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<{
+          tree?: TreeRecord;
+          patch?: ForestPatchRecord;
+        }>;
+
+      const tree =
+        customEvent.detail
+          ?.tree;
+
+      const patch =
+        customEvent.detail
+          ?.patch;
+
+      if (
+        !tree ||
+        !patch ||
+        searchResults.some(
+          (result) =>
+            result.dataset.treeId ===
+            tree.Tree_ID,
+        )
+      ) {
+        return;
+      }
+
+      addTreeSearchResult(
+        tree,
+        patch,
       );
     },
   );

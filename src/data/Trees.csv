@@ -1,5 +1,0 @@
-﻿Tree_ID,Patch_ID,Tree_Name,Tree_Description,Date_Planted,Date_Sprouted,Growth_Stage,Display_Slot,Evidence_Path
-T0001,P001,Linear Regression,Basic regression practice and model interpretation.,2026-07-10,2026-07-14,TREE,1,evidence/P001/T0001
-T0002,P001,Backpropagation,Manual derivation and implementation practice.,2026-07-12,,SAPLING,2,evidence/P001/T0002
-T0003,P002,SQL Joins,Practice combining related database tables.,2026-07-11,2026-07-15,TREE,1,evidence/P002/T0003
-T0004,P003,Image Classification,Introductory image classification exercises.,2026-07-13,,SAPLING,1,evidence/P003/T0004

@@ -1,5 +1,6 @@
 ---
 import ForestPatch from "./ForestPatch.astro";
+import SkillTree from "./SkillTree.astro";
 
 import {
   loadForestData,
@@ -23,7 +24,7 @@ interface ForestInteractionToolChangedDetail {
 const {
   patches: forestPatches,
   trees,
-} = loadForestData();
+} = await loadForestData();
 
 const hasForestPatches =
   forestPatches.length > 0;
@@ -330,12 +331,30 @@ console.log(
       showLabel={true}
     />
   </template>
+
+  <template data-skill-tree-template>
+    <SkillTree
+      treeId="__TREE_ID__"
+      treeName="New Tree"
+      treeDescription=""
+      datePlanted=""
+      dateSprouted=""
+      evidencePath=""
+      patchStyle="01"
+      growthStage="SAPLING"
+      displaySlot={1}
+      patchScale={patchScale}
+    />
+  </template>
 </div>
 
 <script>
   import type {
     ForestPatchRecord,
+    TreeRecord,
   } from "../../scripts/loadForestData";
+
+  import treeSlots from "../../data/tree_slots.json";
 
   import type {
     ForestStateChangedDetail,
@@ -368,6 +387,11 @@ console.log(
   const patchTemplate =
     document.querySelector<HTMLTemplateElement>(
       "[data-forest-patch-template]",
+    );
+
+  const skillTreeTemplate =
+    document.querySelector<HTMLTemplateElement>(
+      "[data-skill-tree-template]",
     );
 
   if (
@@ -1234,6 +1258,75 @@ console.log(
         patch.Patch_Name;
     }
 
+    patchElement
+      .querySelectorAll<HTMLElement>(
+        ".skill-tree",
+      )
+      .forEach(
+        (treeElement) => {
+          const displaySlot =
+            Number(
+              treeElement.dataset
+                .treeDisplaySlot,
+            );
+
+          const growthStage =
+            treeElement.dataset
+              .treeGrowthStage ===
+              "TREE"
+              ? "TREE"
+              : "SAPLING";
+
+          if (
+            !Number.isInteger(
+              displaySlot,
+            ) ||
+            displaySlot < 1
+          ) {
+            return;
+          }
+
+          const variant =
+            String(
+              (
+                (
+                  displaySlot -
+                  1
+                ) %
+                3
+              ) +
+              1,
+            ).padStart(
+              2,
+              "0",
+            );
+
+          const image =
+            treeElement.querySelector<HTMLImageElement>(
+              "img",
+            );
+
+          if (!image) {
+            return;
+          }
+
+          const folder =
+            growthStage ===
+              "TREE"
+              ? "trees"
+              : "saplings";
+
+          const prefix =
+            growthStage ===
+              "TREE"
+              ? "Tree"
+              : "Sapling";
+
+          image.src =
+            `/assets/${folder}/${prefix}_${normalizedStyle}_${variant}.png`;
+        },
+      );
+
     const patchLabel =
       patchElement.querySelector<HTMLElement>(
         ".patch-label",
@@ -1389,6 +1482,75 @@ console.log(
         patch.Patch_Name;
     }
 
+    patchElement
+      .querySelectorAll<HTMLElement>(
+        ".skill-tree",
+      )
+      .forEach(
+        (treeElement) => {
+          const displaySlot =
+            Number(
+              treeElement.dataset
+                .treeDisplaySlot,
+            );
+
+          const growthStage =
+            treeElement.dataset
+              .treeGrowthStage ===
+              "TREE"
+              ? "TREE"
+              : "SAPLING";
+
+          if (
+            !Number.isInteger(
+              displaySlot,
+            ) ||
+            displaySlot < 1
+          ) {
+            return;
+          }
+
+          const variant =
+            String(
+              (
+                (
+                  displaySlot -
+                  1
+                ) %
+                3
+              ) +
+              1,
+            ).padStart(
+              2,
+              "0",
+            );
+
+          const image =
+            treeElement.querySelector<HTMLImageElement>(
+              "img",
+            );
+
+          if (!image) {
+            return;
+          }
+
+          const folder =
+            growthStage ===
+              "TREE"
+              ? "trees"
+              : "saplings";
+
+          const prefix =
+            growthStage ===
+              "TREE"
+              ? "Tree"
+              : "Sapling";
+
+          image.src =
+            `/assets/${folder}/${prefix}_${normalizedStyle}_${variant}.png`;
+        },
+      );
+
     const patchLabel =
       patchElement.querySelector<HTMLElement>(
         ".patch-label",
@@ -1430,6 +1592,198 @@ console.log(
     console.log(
       "Forest patch display updated:",
       patch,
+    );
+  }
+
+  /* =======================================================
+     DYNAMIC TREE CREATION
+     ======================================================= */
+
+  function addTreeToWorld(
+    tree: TreeRecord,
+    patch: ForestPatchRecord,
+  ) {
+    const patchElement =
+      forestWorld.querySelector<HTMLElement>(
+        `[data-patch-id="${CSS.escape(
+          patch.Patch_ID,
+        )}"]`,
+      );
+
+    const templateTree =
+      skillTreeTemplate?.content
+        .querySelector<HTMLElement>(
+          ".skill-tree",
+        );
+
+    if (
+      !patchElement ||
+      !templateTree
+    ) {
+      console.error(
+        "The tree could not be rendered because its patch or template was not found.",
+      );
+
+      return;
+    }
+
+    if (
+      patchElement.querySelector(
+        `[data-tree-id="${CSS.escape(
+          tree.Tree_ID,
+        )}"]`,
+      )
+    ) {
+      return;
+    }
+
+    const slot =
+      treeSlots.find(
+        (record) =>
+          Number(
+            record.Display_Slot,
+          ) ===
+          tree.Display_Slot,
+      );
+
+    if (!slot) {
+      console.error(
+        `Tree slot ${tree.Display_Slot} was not found.`,
+      );
+
+      return;
+    }
+
+    const treeElement =
+      templateTree.cloneNode(
+        true,
+      ) as HTMLElement;
+
+    const style =
+      normalizeStyle(
+        patch.Patch_Style,
+      );
+
+    const treeVariant =
+      String(
+        (
+          (
+            tree.Display_Slot -
+            1
+          ) %
+          3
+        ) +
+        1,
+      ).padStart(
+        2,
+        "0",
+      );
+
+    treeElement.dataset.treeId =
+      tree.Tree_ID;
+
+    treeElement.dataset.treeName =
+      tree.Tree_Name;
+
+    treeElement.dataset.treeDescription =
+      tree.Tree_Description;
+
+    treeElement.dataset.treeDatePlanted =
+      tree.Date_Planted;
+
+    treeElement.dataset.treeDateSprouted =
+      tree.Date_Sprouted;
+
+    treeElement.dataset.treeEvidencePath =
+      tree.Evidence_Path;
+
+    treeElement.dataset.treeGrowthStage =
+      tree.Growth_Stage;
+
+    treeElement.dataset.treeDisplaySlot =
+      String(
+        tree.Display_Slot,
+      );
+
+    treeElement.style.left =
+      `${Number(
+        slot.X_Normalized,
+      ) * 100}%`;
+
+    treeElement.style.top =
+      `${Number(
+        slot.Y_Normalized,
+      ) * 100}%`;
+
+    treeElement.style.zIndex =
+      String(
+        slot.Render_Order,
+      );
+
+    const image =
+      treeElement.querySelector<HTMLImageElement>(
+        "img",
+      );
+
+    if (image) {
+      image.src =
+        `/assets/saplings/Sapling_${style}_${treeVariant}.png`;
+
+      image.alt =
+        tree.Tree_Name;
+    }
+
+    treeElement.classList.add(
+      "is-newly-planted",
+    );
+    
+    const plantingMarker =
+      document.createElement(
+        "div",
+      );
+    
+    plantingMarker.className =
+      "tree-planting-marker";
+    
+    plantingMarker.style.left =
+      treeElement.style.left;
+    
+    plantingMarker.style.top =
+      treeElement.style.top;
+    
+    plantingMarker.style.zIndex =
+      String(
+        Number(
+          slot.Render_Order,
+        ) + 100,
+      );
+    
+    patchElement.append(
+      plantingMarker,
+    );
+    
+    patchElement.append(
+      treeElement,
+    );
+
+    updatePatchInWorld(
+      patch,
+    );
+
+    window.setTimeout(
+      () => {
+        treeElement.classList.remove(
+          "is-newly-planted",
+        );
+    
+        plantingMarker.remove();
+      },
+      1200,
+    );
+
+    console.log(
+      "New sapling rendered in forest world:",
+      tree,
     );
   }
 
@@ -1519,6 +1873,39 @@ console.log(
       }
 
       addPatchToWorld(
+        patch,
+      );
+    },
+  );
+
+  window.addEventListener(
+    "forest:tree-added",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<{
+          tree?: TreeRecord;
+          patch?: ForestPatchRecord;
+        }>;
+
+      const tree =
+        customEvent.detail
+          ?.tree;
+
+      const patch =
+        customEvent.detail
+          ?.patch;
+
+      if (
+        !tree ||
+        !patch
+      ) {
+        return;
+      }
+
+      addTreeToWorld(
+        tree,
         patch,
       );
     },
@@ -1896,6 +2283,194 @@ console.log(
           0 0 0
           transparent
         );
+    }
+  }
+
+  /* =======================================================
+     NEW SAPLING ANIMATION
+     ======================================================= */
+  
+  .forest-stage
+  :global(
+    .skill-tree.is-newly-planted
+  ) {
+    animation:
+      sapling-planted
+      1050ms
+      cubic-bezier(
+        0.34,
+        1.56,
+        0.64,
+        1
+      );
+  }
+  
+  @keyframes sapling-planted {
+    0% {
+      opacity: 0;
+  
+      filter:
+        brightness(1.8)
+        drop-shadow(
+          0 0 18px
+          rgba(
+            115,
+            224,
+            255,
+            1
+          )
+        );
+  
+      transform:
+        translate(
+          -50%,
+          -100%
+        )
+        scale(0.20);
+    }
+  
+    42% {
+      opacity: 1;
+  
+      filter:
+        brightness(1.35)
+        drop-shadow(
+          0 0 22px
+          rgba(
+            71,
+            191,
+            242,
+            0.95
+          )
+        );
+  
+      transform:
+        translate(
+          -50%,
+          -100%
+        )
+        scale(1.22);
+    }
+  
+    70% {
+      transform:
+        translate(
+          -50%,
+          -100%
+        )
+        scale(0.92);
+    }
+  
+    100% {
+      opacity: 1;
+  
+      filter:
+        brightness(1)
+        drop-shadow(
+          0 0 0
+          transparent
+        );
+  
+      transform:
+        translate(
+          -50%,
+          -100%
+        )
+        scale(1);
+    }
+  }
+  
+  /* =======================================================
+     PLANTING LOCATION MARKER
+     ======================================================= */
+  
+  .forest-stage
+  :global(
+    .tree-planting-marker
+  ) {
+    position: absolute;
+  
+    width: 52px;
+    height: 24px;
+  
+    border:
+      3px solid
+      rgba(
+        72,
+        194,
+        238,
+        0.95
+      );
+  
+    border-radius: 50%;
+  
+    background:
+      rgba(
+        170,
+        235,
+        255,
+        0.22
+      );
+  
+    box-shadow:
+      0 0 14px
+      rgba(
+        65,
+        189,
+        237,
+        0.75
+      );
+  
+    pointer-events: none;
+  
+    transform:
+      translate(
+        -50%,
+        -50%
+      );
+  
+    animation:
+      planting-location-pulse
+      1100ms ease-out
+      forwards;
+  }
+  
+  @keyframes planting-location-pulse {
+    0% {
+      opacity: 0;
+  
+      transform:
+        translate(
+          -50%,
+          -50%
+        )
+        scale(0.30);
+    }
+  
+    25% {
+      opacity: 1;
+    }
+  
+    65% {
+      opacity: 0.85;
+  
+      transform:
+        translate(
+          -50%,
+          -50%
+        )
+        scale(1.45);
+    }
+  
+    100% {
+      opacity: 0;
+  
+      transform:
+        translate(
+          -50%,
+          -50%
+        )
+        scale(1.80);
     }
   }
 

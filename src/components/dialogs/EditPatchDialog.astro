@@ -1357,15 +1357,40 @@ const patchStyles =
         );
       }
 
+      window.dispatchEvent(
+        new CustomEvent(
+          "forest:request-mode",
+          {
+            detail: {
+              mode:
+                "planting",
+            },
+          },
+        ),
+      );
+      
+      window.dispatchEvent(
+        new CustomEvent(
+          "patch-viewer:open",
+          {
+            detail: {
+              patchId:
+                savedPatch.Patch_ID,
+            },
+          },
+        ),
+      );
+      
       window.setTimeout(
         closeDialog,
         220,
       );
-
+      
       console.log(
         "Edit Patch saved:",
         savedPatch,
       );
+
     } catch (error) {
       const message =
         error instanceof Error

@@ -32,8 +32,7 @@ const FOREST_PATCH_HEADERS = [
 const FOREST_PATCH_CSV_PATH =
   path.join(
     process.cwd(),
-    "src",
-    "data",
+    "storage",
     "Forest_Patch.csv",
   );
 

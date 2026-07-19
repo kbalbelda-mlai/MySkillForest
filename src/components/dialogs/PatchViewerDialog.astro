@@ -146,9 +146,12 @@ const {
           </span>
         </p>
 
-        <p>
+        <p
+          data-tree-evidence-row
+          hidden
+        >
           <strong>Evidence:</strong>
-
+        
           <a
             data-tree-link
             href=""
@@ -158,7 +161,7 @@ const {
           >
             Open evidence
           </a>
-
+        
           <span data-tree-link-empty>
             Not Available
           </span>
@@ -1140,6 +1143,11 @@ const {
       "[data-tree-link-empty]",
     );
 
+  const treeEvidenceRow =
+    overlay?.querySelector<HTMLElement>(
+      "[data-tree-evidence-row]",
+    );
+
   let previouslyFocusedElement:
     HTMLElement | null = null;
 
@@ -1195,6 +1203,28 @@ const {
     const hasSelectedTree =
       Boolean(selectedTreeId);
 
+    const activePatchTrigger =
+      activePatchId
+        ? findPatchTrigger(
+            activePatchId,
+          )
+        : null;
+
+    const patchTreeTotal =
+      Number(
+        activePatchTrigger?.dataset
+          .patchSaplings ??
+        0,
+      ) +
+      Number(
+        activePatchTrigger?.dataset
+          .patchTrees ??
+        0,
+      );
+
+    const patchIsFull =
+      patchTreeTotal >= 20;
+
     if (editPatchActionButton) {
       editPatchActionButton.disabled =
         currentForestMode !==
@@ -1206,7 +1236,24 @@ const {
       plantTreeActionButton.disabled =
         currentForestMode !==
           "planting" ||
-        hasSelectedTree;
+        hasSelectedTree ||
+        patchIsFull;
+
+      const tooltip =
+        patchIsFull
+          ? "This forest patch already contains 20 trees"
+          : "Plant a Tree";
+
+      plantTreeActionButton.title =
+        tooltip;
+
+      plantTreeActionButton.dataset.tooltip =
+        tooltip;
+
+      plantTreeActionButton.setAttribute(
+        "aria-label",
+        tooltip,
+      );
     }
 
     if (editTreeActionButton) {
@@ -1352,32 +1399,37 @@ const {
       treeName.textContent =
         "Select a tree";
     }
-
+  
     if (treePlanted) {
       treePlanted.textContent =
         "Not Specified";
     }
-
+  
     if (treeSprouted) {
       treeSprouted.textContent =
         "Not Specified";
     }
-
+  
     if (treeDescription) {
       treeDescription.textContent =
         "Select a tree from the forest patch to view its information.";
     }
-
+  
     if (treeLink) {
       treeLink.href = "";
       treeLink.hidden = true;
     }
-
+  
     if (treeLinkEmpty) {
       treeLinkEmpty.textContent =
         "Not Available";
-
+  
       treeLinkEmpty.hidden = false;
+    }
+  
+    if (treeEvidenceRow) {
+      treeEvidenceRow.hidden =
+        true;
     }
   }
 
@@ -1498,40 +1550,67 @@ const {
         );
     }
 
+    const growthStage =
+      tree.dataset
+        .treeGrowthStage ===
+        "TREE"
+        ? "TREE"
+        : "SAPLING";
+    
     if (treeSprouted) {
       treeSprouted.textContent =
-        formatDate(
-          tree.dataset.treeDateSprouted,
-        );
+        growthStage ===
+          "SAPLING"
+          ? "Provide some evidence to see your tree grow"
+          : formatDate(
+              tree.dataset
+                .treeDateSprouted,
+            );
     }
-
+    
     if (treeDescription) {
       treeDescription.textContent =
         tree.dataset.treeDescription?.trim() ||
         "No description has been provided.";
     }
-
+    
     const evidencePath =
-      tree.dataset.treeEvidencePath?.trim();
-
+      tree.dataset
+        .treeEvidencePath
+        ?.trim();
+    
+    if (treeEvidenceRow) {
+      treeEvidenceRow.hidden =
+        growthStage !==
+        "TREE";
+    }
+    
     if (
       treeLink &&
       treeLinkEmpty
     ) {
-      if (evidencePath) {
+      if (
+        growthStage ===
+          "TREE" &&
+        evidencePath
+      ) {
         treeLink.href =
           evidencePath;
-
-        treeLink.hidden = false;
-        treeLinkEmpty.hidden = true;
+    
+        treeLink.hidden =
+          false;
+    
+        treeLinkEmpty.hidden =
+          true;
       } else {
         treeLink.href = "";
         treeLink.hidden = true;
-
+    
         treeLinkEmpty.textContent =
           "Not Available";
-
-        treeLinkEmpty.hidden = false;
+    
+        treeLinkEmpty.hidden =
+          false;
       }
     }
 
@@ -2012,6 +2091,58 @@ const {
   );
 
   /* =======================================================
+     TREE ADDED REFRESH
+     ======================================================= */
+
+  window.addEventListener(
+    "forest:tree-added",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<{
+          tree?: {
+            Tree_ID: string;
+            Patch_ID: string;
+          };
+        }>;
+
+      const tree =
+        customEvent.detail
+          ?.tree;
+
+      if (
+        !tree ||
+        tree.Patch_ID !==
+          activePatchId ||
+        !overlay?.classList.contains(
+          "is-open",
+        )
+      ) {
+        return;
+      }
+
+      window.requestAnimationFrame(
+        () => {
+          const trigger =
+            findPatchTrigger(
+              tree.Patch_ID,
+            );
+
+          if (!trigger) {
+            return;
+          }
+
+          openPatchViewer(
+            trigger,
+            tree.Tree_ID,
+          );
+        },
+      );
+    },
+  );
+
+  /* =======================================================
      CLOSE CONTROLS
      ======================================================= */
 
@@ -2025,7 +2156,7 @@ const {
     (event) => {
       const childDialogOpen =
         document.querySelector(
-          "[data-edit-patch-overlay].is-open",
+          "[data-edit-patch-overlay].is-open, [data-plant-tree-overlay].is-open",
         );
 
       if (

@@ -53,6 +53,11 @@ export interface UpdateForestPatchInput {
   Patch_Description: string;
 }
 
+export interface AddForestTreeInput {
+  tree: TreeRecord;
+  patch: ForestPatchRecord;
+}
+
 /* =========================================================
    IN-MEMORY STATE
 
@@ -629,5 +634,137 @@ export function updateForestPatch(
 
   return clonePatch(
     updatedPatch,
+  );
+}
+
+
+/* =========================================================
+   TREE LOOKUP AND CREATION
+   ========================================================= */
+
+export function getForestTreesByPatchId(
+  patchId: string,
+): TreeRecord[] {
+  const normalizedPatchId =
+    patchId.trim();
+
+  return forestTrees
+    .filter(
+      (tree) =>
+        tree.Patch_ID ===
+        normalizedPatchId,
+    )
+    .map(
+      cloneTree,
+    );
+}
+
+export function addForestTree(
+  input: AddForestTreeInput,
+): TreeRecord {
+  const newTree =
+    cloneTree(
+      input.tree,
+    );
+
+  const updatedPatch =
+    clonePatch(
+      input.patch,
+    );
+
+  if (
+    forestTrees.some(
+      (tree) =>
+        tree.Tree_ID ===
+        newTree.Tree_ID,
+    )
+  ) {
+    throw new Error(
+      `Tree ID "${newTree.Tree_ID}" already exists.`,
+    );
+  }
+
+  const patchIndex =
+    forestPatches.findIndex(
+      (patch) =>
+        patch.Patch_ID ===
+        updatedPatch.Patch_ID,
+    );
+
+  if (patchIndex < 0) {
+    throw new Error(
+      `Patch "${updatedPatch.Patch_ID}" was not found.`,
+    );
+  }
+
+  forestTrees.push(
+    newTree,
+  );
+
+  forestTrees.sort(
+    (
+      firstTree,
+      secondTree,
+    ) => {
+      if (
+        firstTree.Patch_ID !==
+        secondTree.Patch_ID
+      ) {
+        return firstTree.Patch_ID.localeCompare(
+          secondTree.Patch_ID,
+          undefined,
+          {
+            numeric: true,
+          },
+        );
+      }
+
+      return (
+        firstTree.Display_Slot -
+        secondTree.Display_Slot
+      );
+    },
+  );
+
+  forestPatches[
+    patchIndex
+  ] = updatedPatch;
+
+  dispatchForestStateChanged(
+    "tree-added",
+  );
+
+  window.dispatchEvent(
+    new CustomEvent(
+      "forest:tree-added",
+      {
+        detail: {
+          tree:
+            cloneTree(
+              newTree,
+            ),
+
+          patch:
+            clonePatch(
+              updatedPatch,
+            ),
+        },
+      },
+    ),
+  );
+
+  console.log(
+    "Forest tree added to browser state:",
+    {
+      tree:
+        newTree,
+
+      patch:
+        updatedPatch,
+    },
+  );
+
+  return cloneTree(
+    newTree,
   );
 }

@@ -1,0 +1,972 @@
+---
+---
+
+<div
+  class="plant-tree-overlay"
+  aria-hidden="true"
+  data-plant-tree-overlay
+>
+  <section
+    class="plant-tree-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="plant-tree-title"
+  >
+    <button
+      class="close-button"
+      type="button"
+      aria-label="Close Plant a Tree dialog"
+      data-close-plant-tree
+    >
+      ×
+    </button>
+
+    <header>
+      <p class="eyebrow">
+        Patch Inspector
+      </p>
+
+      <h2 id="plant-tree-title">
+        Plant a Tree
+      </h2>
+
+      <p class="intro">
+        This tree will begin as a sapling in the lowest available slot.
+      </p>
+    </header>
+
+    <form
+      class="plant-tree-form"
+      novalidate
+      data-plant-tree-form
+    >
+      <input
+        type="hidden"
+        data-plant-tree-patch-id
+      />
+
+      <div class="field">
+        <div class="field-heading">
+          <label for="plant-tree-name">
+            Tree name
+          </label>
+
+          <span data-tree-name-count>
+            0 / 50
+          </span>
+        </div>
+
+        <input
+          id="plant-tree-name"
+          type="text"
+          maxlength="50"
+          autocomplete="off"
+          required
+          data-plant-tree-name
+        />
+
+        <p
+          class="field-error"
+          data-tree-name-error
+          hidden
+        ></p>
+      </div>
+
+      <div class="field">
+        <div class="field-heading">
+          <label for="plant-tree-description">
+            Tree description
+          </label>
+
+          <span data-tree-description-count>
+            0 / 250
+          </span>
+        </div>
+
+        <textarea
+          id="plant-tree-description"
+          rows="5"
+          maxlength="250"
+          data-plant-tree-description
+        ></textarea>
+
+        <p
+          class="field-error"
+          data-tree-description-error
+          hidden
+        ></p>
+      </div>
+
+      <div class="field">
+        <label for="plant-tree-date">
+          Date planted
+        </label>
+
+        <input
+          id="plant-tree-date"
+          type="date"
+          required
+          data-plant-tree-date
+        />
+
+        <p
+          class="field-error"
+          data-tree-date-error
+          hidden
+        ></p>
+      </div>
+
+      <p
+        class="form-status"
+        role="status"
+        aria-live="polite"
+        data-plant-tree-status
+        hidden
+      ></p>
+
+      <footer>
+        <button
+          class="secondary-button"
+          type="button"
+          data-cancel-plant-tree
+        >
+          Cancel
+        </button>
+
+        <button
+          class="primary-button"
+          type="submit"
+          data-submit-plant-tree
+        >
+          Plant Tree
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+
+<style>
+  .plant-tree-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9200;
+
+    display: grid;
+    place-items: center;
+
+    padding: 28px;
+
+    background:
+      rgba(5, 30, 42, 0.62);
+
+    backdrop-filter:
+      blur(3px);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+      opacity 180ms ease,
+      visibility 180ms ease;
+  }
+
+  .plant-tree-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .plant-tree-dialog {
+    position: relative;
+
+    width:
+      min(
+        650px,
+        94vw
+      );
+
+    max-height:
+      min(
+        760px,
+        92vh
+      );
+
+    overflow-y: auto;
+
+    padding: 30px;
+
+    border:
+      1px solid
+      rgba(
+        19,
+        73,
+        94,
+        0.22
+      );
+
+    border-radius: 24px;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        0.985
+      );
+
+    box-shadow:
+      0 30px 90px
+      rgba(
+        0,
+        0,
+        0,
+        0.42
+      );
+
+    transform:
+      translateY(16px)
+      scale(0.96);
+
+    transition:
+      transform 220ms
+      cubic-bezier(
+        0.34,
+        1.22,
+        0.64,
+        1
+      );
+  }
+
+  .plant-tree-overlay.is-open
+  .plant-tree-dialog {
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  .close-button {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+
+    width: 44px;
+    height: 44px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border:
+      1px solid
+      rgba(
+        28,
+        82,
+        103,
+        0.24
+      );
+
+    border-radius: 50%;
+
+    background:
+      rgba(
+        239,
+        248,
+        251,
+        0.98
+      );
+
+    color: #1f5b72;
+
+    cursor: pointer;
+
+    font-size: 30px;
+    line-height: 1;
+  }
+
+  .eyebrow {
+    margin:
+      0 0 5px;
+
+    color: #458099;
+
+    font-size: 12px;
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 0;
+
+    color: #123f52;
+
+    font-size:
+      clamp(
+        27px,
+        4vw,
+        38px
+      );
+  }
+
+  .intro {
+    margin:
+      8px 48px 0 0;
+
+    color: #5a7782;
+
+    line-height: 1.45;
+  }
+
+  .plant-tree-form {
+    display: grid;
+    gap: 22px;
+
+    margin-top: 26px;
+  }
+
+  .field {
+    min-width: 0;
+  }
+
+  .field-heading {
+    display: flex;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-bottom: 8px;
+  }
+
+  label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: #153f50;
+
+    font-weight: 800;
+  }
+
+  .field-heading label {
+    margin-bottom: 0;
+  }
+
+  .field-heading span {
+    color: #68818a;
+
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+
+    padding: 12px 14px;
+
+    border:
+      1px solid
+      rgba(
+        33,
+        91,
+        113,
+        0.30
+      );
+
+    border-radius: 10px;
+
+    background: white;
+
+    color: #173f50;
+
+    outline: none;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  input:focus,
+  textarea:focus {
+    border-color: #3a9dc5;
+
+    box-shadow:
+      0 0 0 3px
+      rgba(
+        58,
+        157,
+        197,
+        0.16
+      );
+  }
+
+  .field-error,
+  .form-status {
+    margin:
+      7px 0 0;
+
+    color: #a33d3d;
+
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  footer {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 10px;
+  }
+
+  footer button {
+    min-height: 42px;
+
+    padding:
+      9px 17px;
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    font-weight: 800;
+  }
+
+  .secondary-button {
+    border:
+      1px solid
+      rgba(
+        32,
+        91,
+        113,
+        0.27
+      );
+
+    background:
+      rgba(
+        241,
+        249,
+        252,
+        0.98
+      );
+
+    color: #1e5368;
+  }
+
+  .primary-button {
+    border:
+      1px solid #125875;
+
+    background: #176887;
+
+    color: white;
+  }
+
+  button:disabled {
+    opacity: 0.52;
+    cursor: wait;
+  }
+
+  button:focus-visible {
+    outline:
+      3px solid
+      rgba(
+        62,
+        171,
+        218,
+        0.78
+      );
+
+    outline-offset: 3px;
+  }
+</style>
+
+<script>
+  import {
+    addForestTree,
+  } from "../../scripts/forestState";
+
+  import type {
+    ForestPatchRecord,
+    TreeRecord,
+  } from "../../scripts/loadForestData";
+
+  interface PlantTreeRequestDetail {
+    patchId: string;
+  }
+
+  interface PlantTreeSuccess {
+    success: true;
+    tree: TreeRecord;
+    patch: ForestPatchRecord;
+  }
+
+  interface PlantTreeError {
+    success: false;
+    message: string;
+    field?: string;
+  }
+
+  const overlay =
+    document.querySelector<HTMLElement>(
+      "[data-plant-tree-overlay]",
+    );
+
+  const form =
+    overlay?.querySelector<HTMLFormElement>(
+      "[data-plant-tree-form]",
+    );
+
+  const patchIdInput =
+    overlay?.querySelector<HTMLInputElement>(
+      "[data-plant-tree-patch-id]",
+    );
+
+  const nameInput =
+    overlay?.querySelector<HTMLInputElement>(
+      "[data-plant-tree-name]",
+    );
+
+  const descriptionInput =
+    overlay?.querySelector<HTMLTextAreaElement>(
+      "[data-plant-tree-description]",
+    );
+
+  const dateInput =
+    overlay?.querySelector<HTMLInputElement>(
+      "[data-plant-tree-date]",
+    );
+
+  const nameCount =
+    overlay?.querySelector<HTMLElement>(
+      "[data-tree-name-count]",
+    );
+
+  const descriptionCount =
+    overlay?.querySelector<HTMLElement>(
+      "[data-tree-description-count]",
+    );
+
+  const nameError =
+    overlay?.querySelector<HTMLElement>(
+      "[data-tree-name-error]",
+    );
+
+  const descriptionError =
+    overlay?.querySelector<HTMLElement>(
+      "[data-tree-description-error]",
+    );
+
+  const dateError =
+    overlay?.querySelector<HTMLElement>(
+      "[data-tree-date-error]",
+    );
+
+  const formStatus =
+    overlay?.querySelector<HTMLElement>(
+      "[data-plant-tree-status]",
+    );
+
+  const closeButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      "[data-close-plant-tree]",
+    );
+
+  const cancelButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      "[data-cancel-plant-tree]",
+    );
+
+  const submitButton =
+    overlay?.querySelector<HTMLButtonElement>(
+      "[data-submit-plant-tree]",
+    );
+
+  let returnFocusElement:
+    HTMLElement | null = null;
+
+  function today():
+    string {
+    return new Date()
+      .toISOString()
+      .slice(0, 10);
+  }
+
+  function updateCounts() {
+    if (
+      nameInput &&
+      nameCount
+    ) {
+      nameCount.textContent =
+        `${nameInput.value.length} / 50`;
+    }
+
+    if (
+      descriptionInput &&
+      descriptionCount
+    ) {
+      descriptionCount.textContent =
+        `${descriptionInput.value.length} / 250`;
+    }
+  }
+
+  function clearErrors() {
+    [
+      nameError,
+      descriptionError,
+      dateError,
+      formStatus,
+    ].forEach(
+      (element) => {
+        if (!element) return;
+
+        element.textContent = "";
+        element.hidden = true;
+      },
+    );
+  }
+
+  function showError(
+    field: string | undefined,
+    message: string,
+  ) {
+    const target =
+      field === "Tree_Name"
+        ? nameError
+        : field ===
+            "Tree_Description"
+          ? descriptionError
+          : field ===
+              "Date_Planted"
+            ? dateError
+            : formStatus;
+
+    if (!target) return;
+
+    target.textContent =
+      message;
+
+    target.hidden = false;
+  }
+
+  function setSubmitting(
+    submitting: boolean,
+  ) {
+    if (submitButton) {
+      submitButton.disabled =
+        submitting;
+
+      submitButton.textContent =
+        submitting
+          ? "Planting..."
+          : "Plant Tree";
+    }
+
+    if (cancelButton) {
+      cancelButton.disabled =
+        submitting;
+    }
+
+    if (closeButton) {
+      closeButton.disabled =
+        submitting;
+    }
+  }
+
+  function closeDialog() {
+    if (!overlay) return;
+
+    overlay.classList.remove(
+      "is-open",
+    );
+
+    overlay.setAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    clearErrors();
+
+    returnFocusElement?.focus({
+      preventScroll: true,
+    });
+
+    returnFocusElement = null;
+  }
+
+  function openDialog(
+    patchId: string,
+  ) {
+    if (
+      !overlay ||
+      !form ||
+      !patchIdInput ||
+      !nameInput ||
+      !descriptionInput ||
+      !dateInput
+    ) {
+      return;
+    }
+
+    returnFocusElement =
+      document.activeElement instanceof
+        HTMLElement
+        ? document.activeElement
+        : null;
+
+    form.reset();
+
+    patchIdInput.value =
+      patchId;
+
+    dateInput.value =
+      today();
+
+    clearErrors();
+    updateCounts();
+
+    overlay.classList.add(
+      "is-open",
+    );
+
+    overlay.setAttribute(
+      "aria-hidden",
+      "false",
+    );
+
+    window.requestAnimationFrame(
+      () => {
+        nameInput.focus({
+          preventScroll: true,
+        });
+      },
+    );
+  }
+
+  async function submitTree(
+    event: SubmitEvent,
+  ) {
+    event.preventDefault();
+
+    clearErrors();
+
+    const patchId =
+      patchIdInput?.value.trim() ??
+      "";
+
+    const treeName =
+      nameInput?.value
+        .trim()
+        .replace(/\s+/g, " ") ??
+      "";
+
+    const description =
+      descriptionInput?.value.trim() ??
+      "";
+
+    const datePlanted =
+      dateInput?.value.trim() ??
+      "";
+
+    if (!treeName) {
+      showError(
+        "Tree_Name",
+        "Enter a tree name.",
+      );
+
+      nameInput?.focus();
+      return;
+    }
+
+    if (treeName.length > 50) {
+      showError(
+        "Tree_Name",
+        "Tree names cannot exceed 50 characters.",
+      );
+      return;
+    }
+
+    if (description.length > 250) {
+      showError(
+        "Tree_Description",
+        "Tree descriptions cannot exceed 250 characters.",
+      );
+      return;
+    }
+
+    if (!datePlanted) {
+      showError(
+        "Date_Planted",
+        "Choose a valid planting date.",
+      );
+      return;
+    }
+
+    setSubmitting(
+      true,
+    );
+
+    try {
+      const response =
+        await fetch(
+          "/api/trees",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                patchId,
+                treeName,
+                treeDescription:
+                  description,
+                datePlanted,
+              }),
+          },
+        );
+
+      const responseBody =
+        await response.json() as
+          | PlantTreeSuccess
+          | PlantTreeError;
+
+      if (
+        !response.ok ||
+        !responseBody.success
+      ) {
+        const error =
+          responseBody as
+            PlantTreeError;
+
+        showError(
+          error.field,
+          error.message ||
+          "The tree could not be planted.",
+        );
+
+        return;
+      }
+
+      addForestTree({
+        tree:
+          responseBody.tree,
+        patch:
+          responseBody.patch,
+      });
+      
+      /*
+        Explicitly keep the user in Planting Mode and reopen the
+        current Patch Inspector with the newly planted tree selected.
+      */
+      window.dispatchEvent(
+        new CustomEvent(
+          "forest:request-mode",
+          {
+            detail: {
+              mode:
+                "planting",
+            },
+          },
+        ),
+      );
+      
+      window.dispatchEvent(
+        new CustomEvent(
+          "patch-viewer:open",
+          {
+            detail: {
+              patchId:
+                responseBody.patch
+                  .Patch_ID,
+      
+              treeId:
+                responseBody.tree
+                  .Tree_ID,
+            },
+          },
+        ),
+      );
+      
+      /*
+        Close only the child dialog after the state and inspector
+        refresh requests have been sent.
+      */
+      closeDialog();
+      
+      console.log(
+        "Tree planted:",
+        responseBody,
+      );
+
+    } catch (error) {
+      showError(
+        undefined,
+        error instanceof Error
+          ? error.message
+          : "The tree could not be planted.",
+      );
+    } finally {
+      setSubmitting(
+        false,
+      );
+    }
+  }
+
+  window.addEventListener(
+    "patch-inspector:plant-tree",
+    (
+      event: Event,
+    ) => {
+      const customEvent =
+        event as CustomEvent<
+          PlantTreeRequestDetail
+        >;
+
+      const patchId =
+        customEvent.detail
+          ?.patchId
+          ?.trim();
+
+      if (!patchId) return;
+
+      openDialog(
+        patchId,
+      );
+    },
+  );
+
+  form?.addEventListener(
+    "submit",
+    submitTree,
+  );
+
+  nameInput?.addEventListener(
+    "input",
+    updateCounts,
+  );
+
+  descriptionInput?.addEventListener(
+    "input",
+    updateCounts,
+  );
+
+  closeButton?.addEventListener(
+    "click",
+    closeDialog,
+  );
+
+  cancelButton?.addEventListener(
+    "click",
+    closeDialog,
+  );
+</script>
