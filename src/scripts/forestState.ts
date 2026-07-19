@@ -3,10 +3,6 @@ import type {
   TreeRecord,
 } from "./loadForestData";
 
-/* =========================================================
-   FOREST STATE TYPES
-   ========================================================= */
-
 export interface ForestStatistics {
   patchCount: number;
   saplingCount: number;
@@ -24,22 +20,17 @@ export interface ForestStateChangedDetail {
     | "initialized"
     | "patch-added"
     | "patch-updated"
+    | "patch-deleted"
     | "tree-added"
-    | "tree-updated";
-
+    | "tree-updated"
+    | "tree-deleted";
   snapshot: ForestStateSnapshot;
 }
 
 export interface AddForestPatchInput {
   Patch_ID: string;
   Patch_Name: string;
-
-  /*
-    Dialogs use numeric values from 1 to 9.
-    Stored records convert these to "01"–"09".
-  */
   Patch_Style: number;
-
   Patch_Order: number;
   Hex_Q: number;
   Hex_R: number;
@@ -58,713 +49,236 @@ export interface AddForestTreeInput {
   patch: ForestPatchRecord;
 }
 
-/* =========================================================
-   IN-MEMORY STATE
-
-   This state exists only in the browser.
-
-   Refreshing the page restores the original CSV data until
-   persistence is added in a later milestone.
-   ========================================================= */
-
-let forestPatches:
-  ForestPatchRecord[] = [];
-
-let forestTrees:
-  TreeRecord[] = [];
-
+let forestPatches: ForestPatchRecord[] = [];
+let forestTrees: TreeRecord[] = [];
 let hasBeenInitialized = false;
 
-/* =========================================================
-   CLONING HELPERS
-   ========================================================= */
+const clonePatch = (patch: ForestPatchRecord): ForestPatchRecord => ({ ...patch });
+const cloneTree = (tree: TreeRecord): TreeRecord => ({ ...tree });
+const getCurrentDate = (): string => new Date().toISOString().slice(0, 10);
 
-function clonePatch(
-  patch: ForestPatchRecord,
-): ForestPatchRecord {
+function calculateStatistics(): ForestStatistics {
   return {
-    ...patch,
+    patchCount: forestPatches.length,
+    saplingCount: forestTrees.filter((tree) => tree.Growth_Stage === "SAPLING").length,
+    treeCount: forestTrees.filter((tree) => tree.Growth_Stage === "TREE").length,
   };
 }
 
-function cloneTree(
-  tree: TreeRecord,
-): TreeRecord {
+export function getForestState(): ForestStateSnapshot {
   return {
-    ...tree,
+    patches: forestPatches.map(clonePatch),
+    trees: forestTrees.map(cloneTree),
+    statistics: calculateStatistics(),
   };
 }
-
-/* =========================================================
-   DATE HELPERS
-   ========================================================= */
-
-function getCurrentDate():
-  string {
-  return new Date()
-    .toISOString()
-    .slice(0, 10);
-}
-
-/* =========================================================
-   STATISTICS
-   ========================================================= */
-
-function calculateStatistics():
-  ForestStatistics {
-  let saplingCount = 0;
-  let treeCount = 0;
-
-  for (const tree of forestTrees) {
-    if (
-      tree.Growth_Stage ===
-      "TREE"
-    ) {
-      treeCount += 1;
-    } else {
-      saplingCount += 1;
-    }
-  }
-
-  return {
-    patchCount:
-      forestPatches.length,
-
-    saplingCount,
-
-    treeCount,
-  };
-}
-
-/* =========================================================
-   STATE SNAPSHOT
-   ========================================================= */
-
-export function getForestState():
-  ForestStateSnapshot {
-  return {
-    patches:
-      forestPatches.map(
-        clonePatch,
-      ),
-
-    trees:
-      forestTrees.map(
-        cloneTree,
-      ),
-
-    statistics:
-      calculateStatistics(),
-  };
-}
-
-/* =========================================================
-   STATE EVENTS
-   ========================================================= */
 
 function dispatchForestStateChanged(
-  reason:
-    ForestStateChangedDetail["reason"],
-) {
-  const detail:
-    ForestStateChangedDetail = {
-      reason,
-
-      snapshot:
-        getForestState(),
-    };
-
+  reason: ForestStateChangedDetail["reason"],
+): void {
   window.dispatchEvent(
-    new CustomEvent<
-      ForestStateChangedDetail
-    >(
+    new CustomEvent<ForestStateChangedDetail>(
       "forest:state-changed",
       {
-        detail,
+        detail: {
+          reason,
+          snapshot: getForestState(),
+        },
       },
     ),
   );
-
-  console.log(
-    "Forest state changed:",
-    {
-      reason,
-      snapshot:
-        detail.snapshot,
-    },
-  );
 }
-
-/* =========================================================
-   INITIALIZATION
-   ========================================================= */
 
 export function initializeForestState(
-  patches:
-    readonly ForestPatchRecord[],
-
-  trees:
-    readonly TreeRecord[],
+  patches: readonly ForestPatchRecord[],
+  trees: readonly TreeRecord[],
 ): void {
-  forestPatches =
-    patches.map(
-      clonePatch,
-    );
-
-  forestTrees =
-    trees.map(
-      cloneTree,
-    );
-
+  forestPatches = patches.map(clonePatch);
+  forestTrees = trees.map(cloneTree);
   hasBeenInitialized = true;
-
-  dispatchForestStateChanged(
-    "initialized",
-  );
-
-  console.log(
-    "Forest state initialized:",
-    {
-      patchCount:
-        forestPatches.length,
-
-      treeCount:
-        forestTrees.length,
-    },
-  );
+  dispatchForestStateChanged("initialized");
 }
 
-export function isForestStateInitialized():
-  boolean {
+export function isForestStateInitialized(): boolean {
   return hasBeenInitialized;
 }
 
-/* =========================================================
-   PATCH LOOKUP
-   ========================================================= */
-
 export function getForestPatchById(
   patchId: string,
-):
-  | ForestPatchRecord
-  | undefined {
-  const normalizedPatchId =
-    patchId.trim();
-
-  const patch =
-    forestPatches.find(
-      (record) =>
-        record.Patch_ID ===
-        normalizedPatchId,
-    );
-
-  return patch
-    ? clonePatch(patch)
-    : undefined;
+): ForestPatchRecord | undefined {
+  const patch = forestPatches.find(
+    (record) => record.Patch_ID === patchId.trim(),
+  );
+  return patch ? clonePatch(patch) : undefined;
 }
 
-/* =========================================================
-   PATCH VALIDATION
-   ========================================================= */
-
-function validateNewPatch(
-  patch: AddForestPatchInput,
-): void {
-  const patchId =
-    patch.Patch_ID.trim();
-
-  const patchName =
-    patch.Patch_Name.trim();
-
-  if (!patchId) {
-    throw new Error(
-      "Patch ID is required.",
-    );
-  }
-
-  if (!patchName) {
-    throw new Error(
-      "Patch name is required.",
-    );
-  }
-
-  if (
-    patchName.length > 50
-  ) {
-    throw new Error(
-      "Patch names cannot exceed 50 characters.",
-    );
-  }
-
-  if (
-    patch.Patch_Description.trim()
-      .length > 250
-  ) {
-    throw new Error(
-      "Patch descriptions cannot exceed 250 characters.",
-    );
-  }
-
-  if (
-    forestPatches.some(
-      (existingPatch) =>
-        existingPatch.Patch_ID ===
-        patchId,
-    )
-  ) {
-    throw new Error(
-      `Patch ID "${patchId}" already exists.`,
-    );
-  }
-
-  if (
-    forestPatches.some(
-      (existingPatch) =>
-        existingPatch.Patch_Order ===
-        patch.Patch_Order,
-    )
-  ) {
-    throw new Error(
-      `Patch order ${patch.Patch_Order} is already assigned.`,
-    );
-  }
-
-  if (
-    forestPatches.some(
-      (existingPatch) =>
-        existingPatch.Hex_Q ===
-          patch.Hex_Q &&
-        existingPatch.Hex_R ===
-          patch.Hex_R,
-    )
-  ) {
-    throw new Error(
-      `Hex coordinate (${patch.Hex_Q}, ${patch.Hex_R}) is already occupied.`,
-    );
-  }
-
-  if (
-    !Number.isInteger(
-      patch.Patch_Style,
-    ) ||
-    patch.Patch_Style < 1 ||
-    patch.Patch_Style > 9
-  ) {
-    throw new Error(
-      "Patch style must be an integer from 1 to 9.",
-    );
-  }
-
-  if (
-    !Number.isInteger(
-      patch.Patch_Order,
-    ) ||
-    patch.Patch_Order < 1
-  ) {
-    throw new Error(
-      "Patch order must be a positive integer.",
-    );
-  }
-
-  if (
-    !Number.isInteger(
-      patch.Hex_Q,
-    ) ||
-    !Number.isInteger(
-      patch.Hex_R,
-    )
-  ) {
-    throw new Error(
-      "Hex coordinates must be integers.",
-    );
-  }
+export function getForestTreeById(
+  treeId: string,
+): TreeRecord | undefined {
+  const tree = forestTrees.find(
+    (record) => record.Tree_ID === treeId.trim(),
+  );
+  return tree ? cloneTree(tree) : undefined;
 }
 
-/* =========================================================
-   ADD PATCH
-   ========================================================= */
+export function getForestTreesByPatchId(
+  patchId: string,
+): TreeRecord[] {
+  return forestTrees
+    .filter((tree) => tree.Patch_ID === patchId.trim())
+    .map(cloneTree);
+}
 
 export function addForestPatch(
   input: AddForestPatchInput,
 ): ForestPatchRecord {
-  validateNewPatch(
-    input,
-  );
+  const patchId = input.Patch_ID.trim();
+  const patchName = input.Patch_Name.trim().replace(/\s+/g, " ");
 
-  const currentDate =
-    getCurrentDate();
-
-  const newPatch:
-    ForestPatchRecord = {
-      Patch_ID:
-        input.Patch_ID.trim(),
-
-      Patch_Name:
-        input.Patch_Name.trim(),
-
-      Patch_Style:
-        String(
-          input.Patch_Style,
-        ).padStart(2, "0"),
-
-      Patch_Order:
-        input.Patch_Order,
-
-      Hex_Q:
-        input.Hex_Q,
-
-      Hex_R:
-        input.Hex_R,
-
-      Saplings_Planted: 0,
-
-      Trees_Grown: 0,
-
-      Patch_Description:
-        input.Patch_Description.trim(),
-
-      Date_Created:
-        currentDate,
-
-      Last_Updated:
-        currentDate,
-    };
-
-  forestPatches.push(
-    newPatch,
-  );
-
-  forestPatches.sort(
-    (
-      firstPatch,
-      secondPatch,
-    ) =>
-      firstPatch.Patch_Order -
-      secondPatch.Patch_Order,
-  );
-
-  dispatchForestStateChanged(
-    "patch-added",
-  );
-
-  console.log(
-    "Forest patch added to temporary state:",
-    newPatch,
-  );
-
-  return clonePatch(
-    newPatch,
-  );
-}
-
-/* =========================================================
-   UPDATE PATCH
-   ========================================================= */
-
-function normalizePatchName(
-  patchName: string,
-): string {
-  return patchName
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLocaleLowerCase();
-}
-
-function validatePatchUpdate(
-  input: UpdateForestPatchInput,
-): void {
-  const patchId =
-    input.Patch_ID.trim();
-
-  const patchName =
-    input.Patch_Name
-      .trim()
-      .replace(/\s+/g, " ");
-
-  if (!patchId) {
-    throw new Error(
-      "Patch ID is required.",
-    );
+  if (!patchId || !patchName) {
+    throw new Error("Patch ID and name are required.");
   }
 
-  if (!patchName) {
-    throw new Error(
-      "Patch name is required.",
-    );
+  if (forestPatches.some((patch) => patch.Patch_ID === patchId)) {
+    throw new Error(`Patch ID "${patchId}" already exists.`);
   }
 
-  if (patchName.length > 50) {
-    throw new Error(
-      "Patch names cannot exceed 50 characters.",
-    );
-  }
+  const currentDate = getCurrentDate();
+  const newPatch: ForestPatchRecord = {
+    Patch_ID: patchId,
+    Patch_Name: patchName,
+    Patch_Style: String(input.Patch_Style).padStart(2, "0"),
+    Patch_Order: input.Patch_Order,
+    Hex_Q: input.Hex_Q,
+    Hex_R: input.Hex_R,
+    Saplings_Planted: 0,
+    Trees_Grown: 0,
+    Patch_Description: input.Patch_Description.trim(),
+    Date_Created: currentDate,
+    Last_Updated: currentDate,
+  };
 
-  if (
-    input.Patch_Description.trim()
-      .length > 250
-  ) {
-    throw new Error(
-      "Patch descriptions cannot exceed 250 characters.",
-    );
-  }
-
-  if (
-    !Number.isInteger(
-      input.Patch_Style,
-    ) ||
-    input.Patch_Style < 1 ||
-    input.Patch_Style > 9
-  ) {
-    throw new Error(
-      "Patch style must be an integer from 1 to 9.",
-    );
-  }
-
-  const patchExists =
-    forestPatches.some(
-      (patch) =>
-        patch.Patch_ID ===
-        patchId,
-    );
-
-  if (!patchExists) {
-    throw new Error(
-      `Patch "${patchId}" was not found.`,
-    );
-  }
-
-  const normalizedName =
-    normalizePatchName(
-      patchName,
-    );
-
-  const duplicateName =
-    forestPatches.some(
-      (patch) =>
-        patch.Patch_ID !==
-          patchId &&
-        normalizePatchName(
-          patch.Patch_Name,
-        ) ===
-          normalizedName,
-    );
-
-  if (duplicateName) {
-    throw new Error(
-      "A patch with this name already exists.",
-    );
-  }
+  forestPatches.push(newPatch);
+  forestPatches.sort((a, b) => a.Patch_Order - b.Patch_Order);
+  dispatchForestStateChanged("patch-added");
+  return clonePatch(newPatch);
 }
 
 export function updateForestPatch(
   input: UpdateForestPatchInput,
 ): ForestPatchRecord {
-  validatePatchUpdate(
-    input,
+  const index = forestPatches.findIndex(
+    (patch) => patch.Patch_ID === input.Patch_ID.trim(),
   );
 
-  const patchId =
-    input.Patch_ID.trim();
-
-  const patchIndex =
-    forestPatches.findIndex(
-      (patch) =>
-        patch.Patch_ID ===
-        patchId,
-    );
-
-  if (patchIndex < 0) {
-    throw new Error(
-      `Patch "${patchId}" was not found.`,
-    );
+  if (index < 0) {
+    throw new Error(`Patch "${input.Patch_ID}" was not found.`);
   }
 
-  const existingPatch =
-    forestPatches[
-      patchIndex
-    ];
-
-  const updatedPatch:
-    ForestPatchRecord = {
-    ...existingPatch,
-
-    Patch_Name:
-      input.Patch_Name
-        .trim()
-        .replace(/\s+/g, " "),
-
-    Patch_Style:
-      String(
-        input.Patch_Style,
-      ).padStart(2, "0"),
-
-    Patch_Description:
-      input.Patch_Description.trim(),
-
-    Last_Updated:
-      getCurrentDate(),
+  const updatedPatch: ForestPatchRecord = {
+    ...forestPatches[index],
+    Patch_Name: input.Patch_Name.trim().replace(/\s+/g, " "),
+    Patch_Style: String(input.Patch_Style).padStart(2, "0"),
+    Patch_Description: input.Patch_Description.trim(),
+    Last_Updated: getCurrentDate(),
   };
 
-  forestPatches[
-    patchIndex
-  ] = updatedPatch;
-
-  dispatchForestStateChanged(
-    "patch-updated",
-  );
-
-  window.dispatchEvent(
-    new CustomEvent(
-      "forest:patch-updated",
-      {
-        detail: {
-          patch:
-            clonePatch(
-              updatedPatch,
-            ),
-        },
-      },
-    ),
-  );
-
-  console.log(
-    "Forest patch updated in browser state:",
-    updatedPatch,
-  );
-
-  return clonePatch(
-    updatedPatch,
-  );
-}
-
-
-/* =========================================================
-   TREE LOOKUP AND CREATION
-   ========================================================= */
-
-export function getForestTreesByPatchId(
-  patchId: string,
-): TreeRecord[] {
-  const normalizedPatchId =
-    patchId.trim();
-
-  return forestTrees
-    .filter(
-      (tree) =>
-        tree.Patch_ID ===
-        normalizedPatchId,
-    )
-    .map(
-      cloneTree,
-    );
+  forestPatches[index] = updatedPatch;
+  dispatchForestStateChanged("patch-updated");
+  window.dispatchEvent(new CustomEvent("forest:patch-updated", {
+    detail: { patch: clonePatch(updatedPatch) },
+  }));
+  return clonePatch(updatedPatch);
 }
 
 export function addForestTree(
   input: AddForestTreeInput,
 ): TreeRecord {
-  const newTree =
-    cloneTree(
-      input.tree,
-    );
-
-  const updatedPatch =
-    clonePatch(
-      input.patch,
-    );
-
-  if (
-    forestTrees.some(
-      (tree) =>
-        tree.Tree_ID ===
-        newTree.Tree_ID,
-    )
-  ) {
-    throw new Error(
-      `Tree ID "${newTree.Tree_ID}" already exists.`,
-    );
+  if (forestTrees.some((tree) => tree.Tree_ID === input.tree.Tree_ID)) {
+    throw new Error(`Tree ID "${input.tree.Tree_ID}" already exists.`);
   }
 
-  const patchIndex =
-    forestPatches.findIndex(
-      (patch) =>
-        patch.Patch_ID ===
-        updatedPatch.Patch_ID,
-    );
+  forestTrees.push(cloneTree(input.tree));
+  forestTrees.sort((a, b) =>
+    a.Patch_ID.localeCompare(b.Patch_ID, undefined, { numeric: true }) ||
+    a.Display_Slot - b.Display_Slot,
+  );
 
-  if (patchIndex < 0) {
-    throw new Error(
-      `Patch "${updatedPatch.Patch_ID}" was not found.`,
-    );
+  const patchIndex = forestPatches.findIndex(
+    (patch) => patch.Patch_ID === input.patch.Patch_ID,
+  );
+
+  if (patchIndex >= 0) {
+    forestPatches[patchIndex] = clonePatch(input.patch);
   }
 
-  forestTrees.push(
-    newTree,
-  );
-
-  forestTrees.sort(
-    (
-      firstTree,
-      secondTree,
-    ) => {
-      if (
-        firstTree.Patch_ID !==
-        secondTree.Patch_ID
-      ) {
-        return firstTree.Patch_ID.localeCompare(
-          secondTree.Patch_ID,
-          undefined,
-          {
-            numeric: true,
-          },
-        );
-      }
-
-      return (
-        firstTree.Display_Slot -
-        secondTree.Display_Slot
-      );
+  dispatchForestStateChanged("tree-added");
+  window.dispatchEvent(new CustomEvent("forest:tree-added", {
+    detail: {
+      tree: cloneTree(input.tree),
+      patch: clonePatch(input.patch),
     },
+  }));
+  return cloneTree(input.tree);
+}
+
+export function updateForestTree(
+  tree: TreeRecord,
+): TreeRecord {
+  const index = forestTrees.findIndex(
+    (record) => record.Tree_ID === tree.Tree_ID,
   );
 
-  forestPatches[
-    patchIndex
-  ] = updatedPatch;
+  if (index < 0) {
+    throw new Error(`Tree "${tree.Tree_ID}" was not found.`);
+  }
 
-  dispatchForestStateChanged(
-    "tree-added",
+  forestTrees[index] = cloneTree(tree);
+  dispatchForestStateChanged("tree-updated");
+  window.dispatchEvent(new CustomEvent("forest:tree-updated", {
+    detail: { tree: cloneTree(tree) },
+  }));
+  return cloneTree(tree);
+}
+
+export function deleteForestTree(
+  treeId: string,
+  patch: ForestPatchRecord,
+): void {
+  forestTrees = forestTrees.filter(
+    (tree) => tree.Tree_ID !== treeId.trim(),
   );
 
-  window.dispatchEvent(
-    new CustomEvent(
-      "forest:tree-added",
-      {
-        detail: {
-          tree:
-            cloneTree(
-              newTree,
-            ),
-
-          patch:
-            clonePatch(
-              updatedPatch,
-            ),
-        },
-      },
-    ),
+  const patchIndex = forestPatches.findIndex(
+    (record) => record.Patch_ID === patch.Patch_ID,
   );
 
-  console.log(
-    "Forest tree added to browser state:",
-    {
-      tree:
-        newTree,
+  if (patchIndex >= 0) {
+    forestPatches[patchIndex] = clonePatch(patch);
+  }
 
-      patch:
-        updatedPatch,
+  dispatchForestStateChanged("tree-deleted");
+  window.dispatchEvent(new CustomEvent("forest:tree-deleted", {
+    detail: { treeId: treeId.trim(), patch: clonePatch(patch) },
+  }));
+}
+
+export function deleteForestPatch(
+  patchId: string,
+  patches: readonly ForestPatchRecord[],
+  deletedTreeIds: readonly string[],
+): void {
+  forestPatches = patches.map(clonePatch);
+  forestTrees = forestTrees.filter(
+    (tree) => tree.Patch_ID !== patchId.trim(),
+  );
+
+  dispatchForestStateChanged("patch-deleted");
+  window.dispatchEvent(new CustomEvent("forest:patch-deleted", {
+    detail: {
+      patchId: patchId.trim(),
+      patches: forestPatches.map(clonePatch),
+      deletedTreeIds: [...deletedTreeIds],
     },
-  );
-
-  return cloneTree(
-    newTree,
-  );
+  }));
 }

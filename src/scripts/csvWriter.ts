@@ -2,13 +2,24 @@ import {
   access,
   appendFile,
   readFile,
+  rename,
   writeFile,
 } from "node:fs/promises";
 
 import path from "node:path";
 
+import Papa from "papaparse";
+
+import {
+  deletePatchEvidenceFolder,
+  ensurePatchEvidenceFolder,
+} from "./evidenceStorage";
+
+import { generateHexSpiral } from "./hexSpiral";
+
 import type {
   ForestPatchRecord,
+  TreeRecord,
 } from "./loadForestData";
 
 /* =========================================================
@@ -625,6 +636,8 @@ export async function appendForestPatchToCsv(
     "utf8",
   );
 
+  await ensurePatchEvidenceFolder(normalizedPatch.Patch_ID);
+
   console.log(
     "Forest patch appended to CSV:",
     {
@@ -717,7 +730,7 @@ export function validatePatchUpdateForCsv(
    REWRITE PATCH CSV
    ========================================================= */
 
-async function writeForestPatchRecords(
+export async function writeForestPatchRecords(
   patches:
     readonly ForestPatchRecord[],
 ): Promise<void> {
@@ -850,5 +863,130 @@ export async function replaceForestPatchInCsv(
 
   return {
     ...normalizedPatch,
+  };
+}
+
+
+/* =========================================================
+   DELETE PATCH AND COMPACT LAYOUT
+   ========================================================= */
+
+const TREES_CSV_PATH = path.join(
+  process.cwd(),
+  "storage",
+  "Trees.csv",
+);
+
+const TREE_HEADERS = [
+  "Tree_ID",
+  "Patch_ID",
+  "Tree_Name",
+  "Tree_Description",
+  "Date_Planted",
+  "Date_Sprouted",
+  "Growth_Stage",
+  "Display_Slot",
+  "Evidence_Path",
+] as const;
+
+function serializeRecords(
+  headers: readonly string[],
+  records: readonly object[],
+  lineEnding: string,
+): string {
+  const normalized = records.map((record) => {
+    const source = record as Record<string, unknown>;
+    return Object.fromEntries(headers.map((header) => [header, source[header] ?? ""]));
+  });
+
+  return Papa.unparse(normalized, {
+    columns: [...headers],
+    newline: lineEnding,
+  }) + lineEnding;
+}
+
+export interface DeletePatchResult {
+  patchId: string;
+  patches: ForestPatchRecord[];
+  deletedTreeIds: string[];
+}
+
+export async function deleteForestPatchFromCsv(
+  patchIdInput: string,
+): Promise<DeletePatchResult> {
+  const patchId = patchIdInput.trim();
+  const patches = await readForestPatchCsv();
+  const patchExists = patches.some((patch) => patch.Patch_ID === patchId);
+
+  if (!patchExists) {
+    throw new Error(`Patch "${patchId}" was not found.`);
+  }
+
+  const treeCsvText = await readFile(TREES_CSV_PATH, "utf8").catch(() => "");
+  const parsedTrees = Papa.parse<Record<string, string>>(
+    treeCsvText.replace(/^\uFEFF/, ""),
+    { header: true, skipEmptyLines: "greedy", transformHeader: (header) => header.trim() },
+  );
+
+  const trees: TreeRecord[] = parsedTrees.data
+    .filter((row) => row.Tree_ID?.trim() && row.Patch_ID?.trim())
+    .map((row) => ({
+      Tree_ID: row.Tree_ID.trim(),
+      Patch_ID: row.Patch_ID.trim(),
+      Tree_Name: row.Tree_Name?.trim() || "Unnamed Tree",
+      Tree_Description: row.Tree_Description?.trim() || "",
+      Date_Planted: row.Date_Planted?.trim() || "",
+      Date_Sprouted: row.Date_Sprouted?.trim() || "",
+      Growth_Stage: row.Growth_Stage?.trim().toUpperCase() === "TREE" ? "TREE" : "SAPLING",
+      Display_Slot: Number(row.Display_Slot) || 0,
+      Evidence_Path: row.Evidence_Path?.trim() || "",
+    }));
+
+  const deletedTreeIds = trees
+    .filter((tree) => tree.Patch_ID === patchId)
+    .map((tree) => tree.Tree_ID);
+
+  const remainingTrees = trees.filter((tree) => tree.Patch_ID !== patchId);
+  const orderedRemainingPatches = patches
+    .filter((patch) => patch.Patch_ID !== patchId)
+    .sort((a, b) => a.Patch_Order - b.Patch_Order);
+  const coordinates = generateHexSpiral(orderedRemainingPatches.length);
+  const currentDate = new Date().toISOString().slice(0, 10);
+
+  const compactedPatches = orderedRemainingPatches.map((patch, index) => ({
+    ...patch,
+    Patch_Order: index + 1,
+    Hex_Q: coordinates[index].q,
+    Hex_R: coordinates[index].r,
+    Last_Updated: currentDate,
+  }));
+
+  const existingPatchText = await readFile(FOREST_PATCH_CSV_PATH, "utf8").catch(() => "");
+  const patchLineEnding = existingPatchText.includes("\r\n") ? "\r\n" : "\n";
+  const treeLineEnding = treeCsvText.includes("\r\n") ? "\r\n" : "\n";
+  const patchTempPath = `${FOREST_PATCH_CSV_PATH}.tmp`;
+  const treeTempPath = `${TREES_CSV_PATH}.tmp`;
+
+  await Promise.all([
+    writeFile(
+      patchTempPath,
+      serializeRecords(FOREST_PATCH_HEADERS, compactedPatches, patchLineEnding),
+      "utf8",
+    ),
+    writeFile(
+      treeTempPath,
+      serializeRecords(TREE_HEADERS, remainingTrees, treeLineEnding),
+      "utf8",
+    ),
+  ]);
+
+  await rename(patchTempPath, FOREST_PATCH_CSV_PATH);
+  await rename(treeTempPath, TREES_CSV_PATH);
+  await deletePatchEvidenceFolder(patchId);
+
+  return {
+    patchId,
+    patches: compactedPatches,
+    deletedTreeIds,
   };
 }

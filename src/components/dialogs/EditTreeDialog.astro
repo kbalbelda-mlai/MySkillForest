@@ -1,0 +1,58 @@
+---
+---
+<div class="tree-dialog-overlay" aria-hidden="true" data-edit-tree-overlay>
+  <section class="tree-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-tree-title">
+    <button class="dialog-close" type="button" aria-label="Close Edit Tree dialog" data-close-edit-tree>×</button>
+    <p class="eyebrow">Patch Inspector</p>
+    <h2 id="edit-tree-title">Edit Tree</h2>
+    <p class="intro">Update the tree name, description, or planting date.</p>
+    <form data-edit-tree-form novalidate>
+      <input type="hidden" data-edit-tree-id />
+      <input type="hidden" data-edit-tree-patch-id />
+      <label>Tree name <span data-edit-tree-name-count>0 / 50</span></label>
+      <input type="text" maxlength="50" required data-edit-tree-name />
+      <p class="error" data-edit-tree-name-error hidden></p>
+      <label>Tree description <span data-edit-tree-description-count>0 / 250</span></label>
+      <textarea rows="5" maxlength="250" data-edit-tree-description></textarea>
+      <p class="error" data-edit-tree-description-error hidden></p>
+      <label>Date planted</label>
+      <input type="date" required data-edit-tree-date />
+      <p class="error" data-edit-tree-date-error hidden></p>
+      <p class="error" data-edit-tree-status hidden></p>
+      <footer><button type="button" data-cancel-edit-tree>Cancel</button><button class="primary" type="submit" data-save-edit-tree>Save Changes</button></footer>
+    </form>
+  </section>
+</div>
+<style>
+  .tree-dialog-overlay{position:fixed;inset:0;z-index:9300;display:grid;place-items:center;padding:28px;background:rgba(5,30,42,.62);backdrop-filter:blur(3px);opacity:0;visibility:hidden;pointer-events:none;transition:180ms}.tree-dialog-overlay.is-open{opacity:1;visibility:visible;pointer-events:auto}.tree-dialog{position:relative;width:min(650px,94vw);max-height:92vh;overflow:auto;padding:30px;border:1px solid rgba(19,73,94,.22);border-radius:24px;background:rgba(255,255,255,.985);box-shadow:0 30px 90px rgba(0,0,0,.42)}.dialog-close{position:absolute;top:16px;right:16px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(28,82,103,.24);background:#eff8fb;color:#1f5b72;font-size:30px}.eyebrow{margin:0 0 5px;color:#458099;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}h2{margin:0;color:#123f52;font-size:36px}.intro{color:#5a7782}form{display:grid;gap:10px;margin-top:24px}label{display:flex;justify-content:space-between;color:#153f50;font-weight:800;margin-top:8px}label span{font-size:12px;color:#68818a}input,textarea{width:100%;padding:12px 14px;border:1px solid rgba(33,91,113,.3);border-radius:10px;font:inherit}textarea{resize:vertical}.error{margin:0;color:#a33d3d;font-size:13px;font-weight:700}.error[hidden]{display:none}footer{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}button{min-height:42px;padding:9px 17px;border-radius:10px;border:1px solid rgba(32,91,113,.27);font-weight:800;cursor:pointer}.primary{background:#176887;color:white}.primary:disabled{opacity:.55}
+</style>
+<script>
+  import { getForestTreeById, updateForestTree } from "../../scripts/forestState";
+  import type { ForestPatchRecord, TreeRecord } from "../../scripts/loadForestData";
+
+  const overlay=document.querySelector<HTMLElement>("[data-edit-tree-overlay]");
+  const form=overlay?.querySelector<HTMLFormElement>("[data-edit-tree-form]");
+  const treeIdInput=overlay?.querySelector<HTMLInputElement>("[data-edit-tree-id]");
+  const patchIdInput=overlay?.querySelector<HTMLInputElement>("[data-edit-tree-patch-id]");
+  const nameInput=overlay?.querySelector<HTMLInputElement>("[data-edit-tree-name]");
+  const descriptionInput=overlay?.querySelector<HTMLTextAreaElement>("[data-edit-tree-description]");
+  const dateInput=overlay?.querySelector<HTMLInputElement>("[data-edit-tree-date]");
+  const nameCount=overlay?.querySelector<HTMLElement>("[data-edit-tree-name-count]");
+  const descriptionCount=overlay?.querySelector<HTMLElement>("[data-edit-tree-description-count]");
+  const nameError=overlay?.querySelector<HTMLElement>("[data-edit-tree-name-error]");
+  const descriptionError=overlay?.querySelector<HTMLElement>("[data-edit-tree-description-error]");
+  const dateError=overlay?.querySelector<HTMLElement>("[data-edit-tree-date-error]");
+  const status=overlay?.querySelector<HTMLElement>("[data-edit-tree-status]");
+  const saveButton=overlay?.querySelector<HTMLButtonElement>("[data-save-edit-tree]");
+  const closeButtons=overlay?.querySelectorAll<HTMLButtonElement>("[data-close-edit-tree],[data-cancel-edit-tree]") ?? [];
+  let returnFocus:HTMLElement|null=null;
+
+  function updateCounts(){if(nameInput&&nameCount)nameCount.textContent=`${nameInput.value.length} / 50`;if(descriptionInput&&descriptionCount)descriptionCount.textContent=`${descriptionInput.value.length} / 250`;}
+  function clearErrors(){[nameError,descriptionError,dateError,status].forEach((el)=>{if(el){el.textContent="";el.hidden=true;}});}
+  function showError(field:string|undefined,message:string){const target=field==="Tree_Name"?nameError:field==="Tree_Description"?descriptionError:field==="Date_Planted"?dateError:status;if(target){target.textContent=message;target.hidden=false;}}
+  function closeDialog(){overlay?.classList.remove("is-open");overlay?.setAttribute("aria-hidden","true");clearErrors();returnFocus?.focus({preventScroll:true});returnFocus=null;}
+  function openDialog(treeId:string,patchId:string){const tree=getForestTreeById(treeId);if(!tree||tree.Patch_ID!==patchId)return;returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;if(treeIdInput)treeIdInput.value=tree.Tree_ID;if(patchIdInput)patchIdInput.value=tree.Patch_ID;if(nameInput)nameInput.value=tree.Tree_Name;if(descriptionInput)descriptionInput.value=tree.Tree_Description;if(dateInput)dateInput.value=tree.Date_Planted;clearErrors();updateCounts();overlay?.classList.add("is-open");overlay?.setAttribute("aria-hidden","false");requestAnimationFrame(()=>nameInput?.focus());}
+  window.addEventListener("patch-inspector:edit-tree",(event:Event)=>{const detail=(event as CustomEvent<{treeId?:string;patchId?:string}>).detail;const treeId=detail?.treeId?.trim();const patchId=detail?.patchId?.trim();if(treeId&&patchId)openDialog(treeId,patchId);});
+  form?.addEventListener("submit",async(event)=>{event.preventDefault();clearErrors();const treeId=treeIdInput?.value.trim()??"";const patchId=patchIdInput?.value.trim()??"";const treeName=nameInput?.value.trim().replace(/\s+/g," ")??"";const treeDescription=descriptionInput?.value.trim()??"";const datePlanted=dateInput?.value.trim()??"";if(!treeName){showError("Tree_Name","Enter a tree name.");return;}if(treeDescription.length>250){showError("Tree_Description","Tree descriptions cannot exceed 250 characters.");return;}if(!datePlanted){showError("Date_Planted","Choose a valid planting date.");return;}if(saveButton){saveButton.disabled=true;saveButton.textContent="Saving...";}try{const response=await fetch("/api/trees",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({treeId,patchId,treeName,treeDescription,datePlanted})});const body=await response.json() as {success:boolean;tree?:TreeRecord;patch?:ForestPatchRecord;field?:string;message?:string};if(!response.ok||!body.success||!body.tree){showError(body.field,body.message??"The tree could not be updated.");return;}updateForestTree(body.tree);window.dispatchEvent(new CustomEvent("patch-viewer:open",{detail:{patchId,treeId}}));closeDialog();}catch(error){showError(undefined,error instanceof Error?error.message:"The tree could not be updated.");}finally{if(saveButton){saveButton.disabled=false;saveButton.textContent="Save Changes";}}});
+  nameInput?.addEventListener("input",updateCounts);descriptionInput?.addEventListener("input",updateCounts);closeButtons.forEach((button)=>button.addEventListener("click",closeDialog));
+</script>

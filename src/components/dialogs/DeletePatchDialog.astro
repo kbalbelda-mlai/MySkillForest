@@ -1,0 +1,23 @@
+---
+---
+<div class="confirm-overlay" aria-hidden="true" data-delete-patch-overlay>
+  <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-patch-title">
+    <h2 id="delete-patch-title" data-delete-patch-title>Clear Forest Patch?</h2>
+    <p data-delete-patch-message>Are you sure you want to clear this forest patch?</p>
+    <p class="error" data-delete-patch-error hidden></p>
+    <footer><button type="button" data-delete-patch-no>No</button><button class="danger" type="button" data-delete-patch-yes>Yes</button></footer>
+  </section>
+</div>
+<style>
+.confirm-overlay{position:fixed;inset:0;z-index:9400;display:grid;place-items:center;background:rgba(31,8,8,.7);opacity:0;visibility:hidden;pointer-events:none}.confirm-overlay.is-open{opacity:1;visibility:visible;pointer-events:auto}.confirm-dialog{width:min(560px,92vw);padding:30px;border-radius:22px;background:white;box-shadow:0 28px 80px rgba(0,0,0,.48)}h2{margin:0 0 12px;color:#702525}p{line-height:1.5;color:#4b3b3b}.error{color:#a12f2f;font-weight:700}.error[hidden]{display:none}footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}button{padding:10px 18px;border-radius:10px;border:1px solid #b7a5a5;font-weight:800;cursor:pointer}.danger{background:#a43737;color:#fff;border-color:#842929}
+</style>
+<script>
+  import { deleteForestPatch } from "../../scripts/forestState";
+  import type { ForestPatchRecord } from "../../scripts/loadForestData";
+  const overlay=document.querySelector<HTMLElement>("[data-delete-patch-overlay]");const title=overlay?.querySelector<HTMLElement>("[data-delete-patch-title]");const message=overlay?.querySelector<HTMLElement>("[data-delete-patch-message]");const error=overlay?.querySelector<HTMLElement>("[data-delete-patch-error]");const noButton=overlay?.querySelector<HTMLButtonElement>("[data-delete-patch-no]");const yesButton=overlay?.querySelector<HTMLButtonElement>("[data-delete-patch-yes]");let stage:1|2=1;let patchId="";
+  function finish(){overlay?.classList.remove("is-open");overlay?.setAttribute("aria-hidden","true");window.dispatchEvent(new CustomEvent("forest:delete-patch-selection",{detail:{active:false}}));window.dispatchEvent(new CustomEvent("forest:request-mode",{detail:{mode:"planting"}}));stage=1;patchId="";}
+  function render(){if(title)title.textContent=stage===1?"Clear Forest Patch?":"Final Confirmation";if(message)message.textContent=stage===1?"Are you sure you want to clear this forest patch?":"Are you really sure? This will delete all respective trees and evidence, which cannot be restored.";}
+  window.addEventListener("delete-patch-dialog:open",(event:Event)=>{patchId=(event as CustomEvent<{patchId?:string}>).detail?.patchId?.trim()??"";if(!patchId)return;stage=1;render();if(error){error.hidden=true;error.textContent="";}overlay?.classList.add("is-open");overlay?.setAttribute("aria-hidden","false");yesButton?.focus();});
+  noButton?.addEventListener("click",finish);
+  yesButton?.addEventListener("click",async()=>{if(stage===1){stage=2;render();return;}yesButton.disabled=true;yesButton.textContent="Deleting...";try{const response=await fetch("/api/patches",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({patchId})});const body=await response.json() as {success:boolean;patches?:ForestPatchRecord[];deletedTreeIds?:string[];message?:string};if(!response.ok||!body.success||!body.patches)throw new Error(body.message??"The patch could not be deleted.");deleteForestPatch(patchId,body.patches,body.deletedTreeIds??[]);finish();}catch(err){if(error){error.textContent=err instanceof Error?err.message:"The patch could not be deleted.";error.hidden=false;}}finally{yesButton.disabled=false;yesButton.textContent="Yes";}});
+</script>

@@ -2,14 +2,12 @@ Tree_ID,Patch_ID,Tree_Name,Tree_Description,Date_Planted,Date_Sprouted,Growth_St
 T1,P001,Linear Regression,Basic regression practice and model interpretation.,2026-07-10,2026-07-14,TREE,1,evidence/P001/T0001
 T2,P001,Backpropagation,Manual derivation and implementation practice.,2026-07-12,,SAPLING,2,evidence/P001/T0002
 T3,P002,SQL Joins,Practice combining related database tables.,2026-07-11,2026-07-15,TREE,1,evidence/P002/T0003
-T4,P003,Image Classification,Introductory image classification exercises.,2026-07-13,,SAPLING,1,evidence/P003/T0004
 T6,P001,Tree 2,,2026-07-19,,SAPLING,4,
 T7,P001,LinearRegression,,2026-07-19,,SAPLING,5,
 T8,P001,Image Classification,,2026-07-19,,SAPLING,6,
 T9,P002,Sakura Bloom,Des,2026-07-19,,SAPLING,2,
 T10,P001,2Tree,,2026-07-19,,TREE,3,
-T11,P001,Tree1,,2026-07-19,,TREE,7,
-T12,P001,Tree2,,2026-07-19,,TREE,8,
+T12,P001,Tree234,,2026-07-19,,TREE,8,
 T13,P001,Tree3,,2026-07-19,,TREE,9,
 T14,P001,Tree4,,2026-07-19,,TREE,10,
 T15,P001,Tree5,,2026-07-19,,TREE,11,
@@ -21,5 +19,5 @@ T20,P001,Tree10,,2026-07-19,,TREE,16,
 T21,P001,Tree11,,2026-07-19,,TREE,17,
 T22,P001,Tree12,,2026-07-19,,TREE,18,
 T23,P001,Tree13,,2026-07-19,,TREE,19,
-T24,P001,Tree14,,2026-07-19,,TREE,20,
 T25,P004,Tree15,,2026-07-19,,TREE,1,
+T26,P004,TestTree,,2026-07-19,,SAPLING,2,evidence/P004/T26

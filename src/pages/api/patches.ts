@@ -4,6 +4,7 @@ import type {
 
 import {
   appendForestPatchToCsv,
+  deleteForestPatchFromCsv,
   readForestPatchCsv,
   replaceForestPatchInCsv,
   validatePatchForCsv,
@@ -652,3 +653,50 @@ export const GET:
       );
     }
   };
+
+
+/* =========================================================
+   DELETE /api/patches
+   ========================================================= */
+
+export const DELETE: APIRoute = async ({ request }) => {
+  let body: { patchId?: unknown };
+
+  try {
+    body = await request.json() as { patchId?: unknown };
+  } catch {
+    return errorResponse(
+      "The request body must contain valid JSON.",
+      400,
+      "Request",
+    );
+  }
+
+  const patchId = typeof body.patchId === "string"
+    ? body.patchId.trim()
+    : "";
+
+  if (!patchId) {
+    return errorResponse("A patch ID is required.", 400, "Patch_ID");
+  }
+
+  try {
+    const result = await deleteForestPatchFromCsv(patchId);
+    return new Response(JSON.stringify({ success: true, ...result }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : "The patch could not be deleted.";
+    return errorResponse(
+      message,
+      message.includes("was not found") ? 404 : 500,
+      message.includes("was not found") ? "Patch_ID" : "Request",
+    );
+  }
+};

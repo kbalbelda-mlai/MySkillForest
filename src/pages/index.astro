@@ -9,6 +9,9 @@ import AboutDialog from "../components/dialogs/AboutDialog.astro";
 import AddPatchDialog from "../components/dialogs/AddPatchDialog.astro";
 import EditPatchDialog from "../components/dialogs/EditPatchDialog.astro";
 import PlantTreeDialog from "../components/dialogs/PlantTreeDialog.astro";
+import EditTreeDialog from "../components/dialogs/EditTreeDialog.astro";
+import ChopTreeDialog from "../components/dialogs/ChopTreeDialog.astro";
+import DeletePatchDialog from "../components/dialogs/DeletePatchDialog.astro";
 
 /* =========================================================
    PAGE DATA
@@ -343,8 +346,7 @@ console.log("Index page forest data:", {
           class="patch-operation-button danger"
           type="button"
           data-delete-patch-button
-          disabled
-          title="Delete Patch will be implemented in a later milestone"
+          title="Select a patch to delete"
         >
           Delete Patch
         </button>
@@ -360,6 +362,14 @@ console.log("Index page forest data:", {
     <EditPatchDialog />
 
     <PlantTreeDialog />
+
+    <EditTreeDialog />
+
+    <ChopTreeDialog />
+
+    <DeletePatchDialog />
+
+    <div class="delete-patch-hint" data-delete-patch-hint hidden>Hit ESC to Cancel</div>
   </body>
 </html>
 
@@ -1456,6 +1466,17 @@ console.log("Index page forest data:", {
     cursor: not-allowed;
   }
 
+  .delete-patch-hint {
+    position: fixed; right: 24px; bottom: 24px; z-index: 4200;
+    padding: 14px 18px; border: 2px solid #7d1717; border-radius: 12px;
+    background: rgba(176, 38, 38, 0.96); color: white; font-weight: 900;
+    box-shadow: 0 12px 30px rgba(90, 12, 12, 0.35);
+  }
+  .delete-patch-hint[hidden] { display: none !important; }
+  body[data-delete-patch-mode="true"] .patch-operation-button.danger {
+    background: #a72f2f; color: white; border-color: #7c2020;
+  }
+
   /* =======================================================
      RESPONSIVE HEADER AND CONTROLS
      ======================================================= */
@@ -2174,17 +2195,6 @@ console.log("Index page forest data:", {
       );
     }
 
-    /*
-      Delete Patch remains disabled during Milestone 6A.
-      Its deletion workflow will be implemented separately.
-    */
-    if (deletePatchButton) {
-      deletePatchButton.disabled =
-        true;
-
-      deletePatchButton.title =
-        "Delete Patch will be implemented in a later milestone";
-    }
 
     if (animate) {
       animateModeChange();
@@ -2275,6 +2285,9 @@ console.log("Index page forest data:", {
           [
             "[data-edit-patch-overlay].is-open",
             "[data-plant-tree-overlay].is-open",
+            "[data-edit-tree-overlay].is-open",
+            "[data-chop-tree-overlay].is-open",
+            "[data-delete-patch-overlay].is-open",
           ].join(", "),
         );
   
@@ -2365,18 +2378,36 @@ console.log("Index page forest data:", {
     },
   );
 
-  deletePatchButton?.addEventListener(
-    "click",
-    () => {
-      /*
-        Delete Patch intentionally remains unavailable during
-        Milestone 6A.
-      */
-      console.log(
-        "Delete Patch is not yet available.",
-      );
-    },
-  );
+  const deletePatchHint = document.querySelector<HTMLElement>("[data-delete-patch-hint]");
+  let deletePatchSelectionActive = false;
+
+  function setDeletePatchSelection(active: boolean) {
+    deletePatchSelectionActive = active;
+    pageBody.dataset.deletePatchMode = String(active);
+    if (deletePatchHint) deletePatchHint.hidden = !active;
+    window.dispatchEvent(new CustomEvent("forest:delete-patch-selection", { detail: { active } }));
+  }
+
+  deletePatchButton?.addEventListener("click", () => {
+    if (currentMode !== "planting") return;
+    closeSearchResults();
+    setDeletePatchSelection(true);
+  });
+
+  window.addEventListener("forest:delete-patch-selection", (event: Event) => {
+    const active = Boolean((event as CustomEvent<{active?: boolean}>).detail?.active);
+    deletePatchSelectionActive = active;
+    pageBody.dataset.deletePatchMode = String(active);
+    if (deletePatchHint) deletePatchHint.hidden = !active;
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && deletePatchSelectionActive) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setDeletePatchSelection(false);
+    }
+  }, true);
 
   /* =======================================================
      TREE SEARCH HELPERS
@@ -2989,6 +3020,28 @@ console.log("Index page forest data:", {
         ) {
           updateSearchResults();
         }
+      }
+
+      if (customEvent.detail?.reason === "tree-updated") {
+        const trees = customEvent.detail.snapshot.trees;
+        for (const result of searchResults) {
+          const tree = trees.find((record) => record.Tree_ID === result.dataset.treeId);
+          if (!tree) continue;
+          result.dataset.treeName = tree.Tree_Name;
+          result.dataset.normalizedTreeName = normalizeSearchText(tree.Tree_Name);
+          const nameElement = result.querySelector<HTMLElement>(".search-result-tree-name");
+          if (nameElement) nameElement.textContent = tree.Tree_Name;
+        }
+      }
+
+      if (customEvent.detail?.reason === "tree-deleted" || customEvent.detail?.reason === "patch-deleted") {
+        const validTreeIds = new Set(customEvent.detail.snapshot.trees.map((tree) => tree.Tree_ID));
+        searchResults = searchResults.filter((result) => {
+          const keep = validTreeIds.has(result.dataset.treeId ?? "");
+          if (!keep) result.remove();
+          return keep;
+        });
+        closeSearchResults();
       }
 
       if (patchCountElement) {

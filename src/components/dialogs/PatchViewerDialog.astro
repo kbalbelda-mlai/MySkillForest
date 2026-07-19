@@ -1915,6 +1915,7 @@ const {
       trigger.addEventListener(
         "click",
         () => {
+          if (document.body.dataset.deletePatchMode === "true") return;
           openPatchViewer(
             trigger,
           );
@@ -2142,6 +2143,23 @@ const {
     },
   );
 
+  window.addEventListener("forest:tree-updated", (event: Event) => {
+    const tree = (event as CustomEvent<{tree?: {Tree_ID:string;Patch_ID:string}}>).detail?.tree;
+    if (!tree || tree.Patch_ID !== activePatchId || !overlay?.classList.contains("is-open")) return;
+    requestAnimationFrame(() => { const trigger=findPatchTrigger(tree.Patch_ID); if(trigger) openPatchViewer(trigger, tree.Tree_ID); });
+  });
+
+  window.addEventListener("forest:tree-deleted", (event: Event) => {
+    const patch = (event as CustomEvent<{patch?: {Patch_ID:string}}>).detail?.patch;
+    if (!patch || patch.Patch_ID !== activePatchId || !overlay?.classList.contains("is-open")) return;
+    requestAnimationFrame(() => { const trigger=findPatchTrigger(patch.Patch_ID); if(trigger) openPatchViewer(trigger); });
+  });
+
+  window.addEventListener("forest:patch-deleted", (event: Event) => {
+    const patchId = (event as CustomEvent<{patchId?:string}>).detail?.patchId;
+    if (patchId && patchId === activePatchId) closePatchViewer();
+  });
+
   /* =======================================================
      CLOSE CONTROLS
      ======================================================= */
@@ -2156,7 +2174,7 @@ const {
     (event) => {
       const childDialogOpen =
         document.querySelector(
-          "[data-edit-patch-overlay].is-open, [data-plant-tree-overlay].is-open",
+          "[data-edit-patch-overlay].is-open, [data-plant-tree-overlay].is-open, [data-edit-tree-overlay].is-open, [data-chop-tree-overlay].is-open, [data-delete-patch-overlay].is-open",
         );
 
       if (

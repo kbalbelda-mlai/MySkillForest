@@ -497,6 +497,7 @@ console.log(
   let suppressNextPatchClick = false;
   
   const DRAG_THRESHOLD = 6;
+  let deletePatchSelectionActive = false;
 
   /* =======================================================
      GENERAL HELPERS
@@ -1151,6 +1152,10 @@ console.log(
     patchElement.addEventListener(
       "click",
       () => {
+        if (deletePatchSelectionActive) {
+          window.dispatchEvent(new CustomEvent("delete-patch-dialog:open", { detail: { patchId } }));
+          return;
+        }
         openPatchViewer(
           patchId,
         );
@@ -1911,6 +1916,67 @@ console.log(
     },
   );
 
+  function updateTreeInWorld(tree: TreeRecord) {
+    const treeElement = forestWorld.querySelector<HTMLElement>(
+      `[data-tree-id="${CSS.escape(tree.Tree_ID)}"]`,
+    );
+    if (!treeElement) return;
+    treeElement.dataset.treeName = tree.Tree_Name;
+    treeElement.dataset.treeDescription = tree.Tree_Description;
+    treeElement.dataset.treeDatePlanted = tree.Date_Planted;
+    const image = treeElement.querySelector<HTMLImageElement>("img");
+    if (image) image.alt = tree.Tree_Name;
+  }
+
+  function removeTreeFromWorld(treeId: string, patch: ForestPatchRecord) {
+    forestWorld.querySelector<HTMLElement>(
+      `[data-tree-id="${CSS.escape(treeId)}"]`,
+    )?.remove();
+    updatePatchInWorld(patch);
+  }
+
+  function removePatchAndCompactWorld(
+    patchId: string,
+    patches: readonly ForestPatchRecord[],
+  ) {
+    forestWorld.querySelector<HTMLElement>(
+      `[data-patch-id="${CSS.escape(patchId)}"]`,
+    )?.remove();
+
+    for (const patch of patches) {
+      const element = forestWorld.querySelector<HTMLElement>(
+        `[data-patch-id="${CSS.escape(patch.Patch_ID)}"]`,
+      );
+      if (!element) continue;
+      const position = hexToWorld(patch.Hex_Q, patch.Hex_R);
+      element.style.left = `${position.x}px`;
+      element.style.top = `${position.y}px`;
+    }
+
+    const hasPatches = patches.length > 0;
+    stage.dataset.hasPatches = String(hasPatches);
+    stage.classList.toggle("is-empty", !hasPatches);
+    if (emptyForestState) emptyForestState.hidden = hasPatches;
+    recalculateWorldBounds();
+    updatePatchLayering();
+    recenterCamera();
+  }
+
+  window.addEventListener("forest:tree-updated", (event: Event) => {
+    const tree = (event as CustomEvent<{tree?: TreeRecord}>).detail?.tree;
+    if (tree) updateTreeInWorld(tree);
+  });
+
+  window.addEventListener("forest:tree-deleted", (event: Event) => {
+    const detail = (event as CustomEvent<{treeId?:string;patch?:ForestPatchRecord}>).detail;
+    if (detail?.treeId && detail.patch) removeTreeFromWorld(detail.treeId, detail.patch);
+  });
+
+  window.addEventListener("forest:patch-deleted", (event: Event) => {
+    const detail = (event as CustomEvent<{patchId?:string;patches?:ForestPatchRecord[]}>).detail;
+    if (detail?.patchId && detail.patches) removePatchAndCompactWorld(detail.patchId, detail.patches);
+  });
+
   /* =======================================================
      INTERACTION TOOL EVENTS
      ======================================================= */
@@ -1991,6 +2057,20 @@ console.log(
       );
     },
   );
+
+
+  window.addEventListener("forest:delete-patch-selection", (event: Event) => {
+    deletePatchSelectionActive = Boolean((event as CustomEvent<{active?:boolean}>).detail?.active);
+    stage.classList.toggle("is-delete-patch-mode", deletePatchSelectionActive);
+  });
+
+  stage.addEventListener("click", (event) => {
+    if (!deletePatchSelectionActive) return;
+    const patch = (event.target as HTMLElement).closest<HTMLElement>("[data-patch-viewer-trigger]");
+    if (!patch?.dataset.patchId) return;
+    event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+    window.dispatchEvent(new CustomEvent("delete-patch-dialog:open", { detail: { patchId: patch.dataset.patchId } }));
+  }, true);
 
   /* =======================================================
      CAMERA EVENTS
@@ -2177,6 +2257,13 @@ console.log(
   :global(.forest-patch:focus-visible .patch-description) {
     z-index: 100001 !important;
   }
+
+  .forest-stage.is-delete-patch-mode :global(.forest-patch:hover .ground-patch),
+  .forest-stage.is-delete-patch-mode :global(.forest-patch:focus-visible .ground-patch) {
+    filter: brightness(1.08) drop-shadow(0 0 8px rgba(255, 70, 70, 1)) drop-shadow(0 0 22px rgba(210, 15, 15, 0.95)) !important;
+    transform: scale(1.035) !important;
+  }
+  .forest-stage.is-delete-patch-mode :global(.forest-patch) { cursor: crosshair !important; }
 
   /* =======================================================
      NEW PATCH ANIMATION

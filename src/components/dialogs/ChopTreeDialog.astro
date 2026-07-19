@@ -1,0 +1,23 @@
+---
+---
+<div class="confirm-overlay" aria-hidden="true" data-chop-tree-overlay>
+  <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="chop-tree-title">
+    <h2 id="chop-tree-title" data-chop-title>Chop Tree?</h2>
+    <p data-chop-message>Are you sure you want to chop this tree?</p>
+    <p class="error" data-chop-error hidden></p>
+    <footer><button type="button" data-chop-no>No</button><button class="danger" type="button" data-chop-yes>Yes</button></footer>
+  </section>
+</div>
+<style>
+.confirm-overlay{position:fixed;inset:0;z-index:9400;display:grid;place-items:center;background:rgba(31,8,8,.66);opacity:0;visibility:hidden;pointer-events:none}.confirm-overlay.is-open{opacity:1;visibility:visible;pointer-events:auto}.confirm-dialog{width:min(520px,92vw);padding:30px;border-radius:22px;background:white;box-shadow:0 28px 80px rgba(0,0,0,.45)}h2{margin:0 0 12px;color:#702525}p{line-height:1.5;color:#4b3b3b}.error{color:#a12f2f;font-weight:700}.error[hidden]{display:none}footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}button{padding:10px 18px;border-radius:10px;border:1px solid #b7a5a5;font-weight:800;cursor:pointer}.danger{background:#a43737;color:#fff;border-color:#842929}
+</style>
+<script>
+  import { deleteForestTree } from "../../scripts/forestState";
+  import type { ForestPatchRecord } from "../../scripts/loadForestData";
+  const overlay=document.querySelector<HTMLElement>("[data-chop-tree-overlay]");const title=overlay?.querySelector<HTMLElement>("[data-chop-title]");const message=overlay?.querySelector<HTMLElement>("[data-chop-message]");const error=overlay?.querySelector<HTMLElement>("[data-chop-error]");const noButton=overlay?.querySelector<HTMLButtonElement>("[data-chop-no]");const yesButton=overlay?.querySelector<HTMLButtonElement>("[data-chop-yes]");let stage:1|2=1;let treeId="";let patchId="";
+  function close(){overlay?.classList.remove("is-open");overlay?.setAttribute("aria-hidden","true");stage=1;treeId="";patchId="";}
+  function render(){if(title)title.textContent=stage===1?"Chop Tree?":"Final Confirmation";if(message)message.textContent=stage===1?"Are you sure you want to chop this tree?":"Are you really sure you want to delete this tree? Its evidence will be deleted and cannot be restored.";}
+  window.addEventListener("patch-inspector:chop-tree",(event:Event)=>{const detail=(event as CustomEvent<{treeId?:string;patchId?:string}>).detail;treeId=detail?.treeId?.trim()??"";patchId=detail?.patchId?.trim()??"";if(!treeId||!patchId)return;stage=1;render();if(error){error.hidden=true;error.textContent="";}overlay?.classList.add("is-open");overlay?.setAttribute("aria-hidden","false");yesButton?.focus();});
+  noButton?.addEventListener("click",close);
+  yesButton?.addEventListener("click",async()=>{if(stage===1){stage=2;render();return;}yesButton.disabled=true;yesButton.textContent="Deleting...";try{const response=await fetch("/api/trees",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({treeId})});const body=await response.json() as {success:boolean;patch?:ForestPatchRecord;message?:string};if(!response.ok||!body.success||!body.patch)throw new Error(body.message??"The tree could not be deleted.");deleteForestTree(treeId,body.patch);window.dispatchEvent(new CustomEvent("patch-viewer:open",{detail:{patchId}}));close();}catch(err){if(error){error.textContent=err instanceof Error?err.message:"The tree could not be deleted.";error.hidden=false;}}finally{yesButton.disabled=false;yesButton.textContent="Yes";}});
+</script>
