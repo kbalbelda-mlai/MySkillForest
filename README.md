@@ -1,9 +1,5 @@
 # My Skill Forest
 
-<p align="center">
-  <img src="public/assets/Sample_Screenshot.png" alt="My Skill Forest preview" width="900">
-</p>
-
 ## About
 
 **My Skill Forest** is a more playful way of presenting a professional learning journey.
@@ -11,8 +7,6 @@
 Instead of collecting every skill in a long list, this project turns them into a growing landscape. Broad areas of knowledge become **forest patches**, newly acquired skills begin as **saplings**, and skills supported by real evidence mature into full-grown **trees**.
 
 This forest is only one part of a larger portfolio, but it is designed to grow alongside it. As more skills are learned, practiced, and applied, the forest becomes denser, more varied, and more alive.
-
-A quiet patch means there is still room to explore. A flourishing patch means the learning has taken root.
 
 ---
 
@@ -78,29 +72,6 @@ The reusable version of this project is available here:
 - the public Strolling Mode deployment workflow.
 
 You can clone it, fork it, or use it as a template to create a forest of your own.
-
----
-
-## Relationship to My Main Portfolio
-
-My Skill Forest is a companion piece to my larger professional portfolio.
-
-The main portfolio presents complete projects, technical work, and career materials. This forest focuses on the skills behind those outputs and shows how they accumulate over time.
-
-Together, they tell two sides of the same story:
-
-- the portfolio shows **what I have built**;
-- the forest shows **what has taken root along the way**.
-
----
-
-## Repository Notes
-
-This repository is the personal instance of the project.
-
-For implementation details, installation instructions, demo data, and reusable setup guidance, refer to:
-
-[TheSkillForest repository](https://github.com/kbalbelda-mlai/TheSkillForest)
 
 ---
 
