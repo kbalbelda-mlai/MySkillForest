@@ -1,6 +1,7 @@
 Tree_ID,Patch_ID,Tree_Name,Tree_Description,Date_Planted,Date_Sprouted,Growth_Stage,Display_Slot,Evidence_Path
-T1,P001,Introduction to Python,Day 1 - Working with Variables in Python to Manage Data,2026-07-19,,SAPLING,1,evidence/P001/T1
-T2,P001,Data Types and Strings,Day 2 - Understanding Data Types and How to Manipulate Strings,2026-07-19,,SAPLING,2,evidence/P001/T2
-T3,P001,Logic Operators,Day 3 - Control Flow and Logical Operators,2026-07-19,,SAPLING,3,evidence/P001/T3
-T4,P001,Randomization,Day 4 - Randomization and Python Lists,2026-07-19,,SAPLING,4,evidence/P001/T4
-T5,P001,Loops,Day 5 - Python Loops,2026-07-19,,SAPLING,5,evidence/P001/T5
+T1,P001,Introduction to Python,Day 1 - Working with Variables in Python to Manage Data,2026-07-19,2026-06-06,TREE,1,evidence/P001/T1
+T2,P001,Data Types and Strings,Day 2 - Understanding Data Types and How to Manipulate Strings,2026-07-19,2026-06-07,TREE,2,evidence/P001/T2
+T3,P001,Logic Operators,Day 3 - Control Flow and Logical Operators,2026-07-19,2026-06-07,TREE,3,evidence/P001/T3
+T4,P001,Randomization,Day 4 - Randomization and Python Lists,2026-07-19,2026-06-12,TREE,4,evidence/P001/T4
+T5,P001,Loops,Day 5 - Python Loops,2026-07-19,2026-06-12,TREE,5,evidence/P001/T5
+T6,P001,Functions,"Day 6, 7, 8 - Python Functions and Karel. Applications applicable to the Function",2026-07-19,2026-06-23,TREE,6,evidence/P001/T6
