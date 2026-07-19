@@ -1,4 +1,2 @@
 Patch_ID,Patch_Name,Patch_Style,Patch_Order,Hex_Q,Hex_R,Saplings_Planted,Trees_Grown,Patch_Description,Date_Created,Last_Updated
-P001,Data Foundations,01,1,0,0,2,2,Core analytical skills for working with structured data.,2026-01-05,2026-07-19
-P002,Machine Learning,05,2,0,-1,1,1,Models experiments and evaluation practices for predictive work.,2026-01-12,2026-03-18
-P003,Software Delivery,03,3,1,-1,1,0,Practical engineering skills for packaging testing and deploying projects.,2026-02-01,2026-07-19
+P001,Python: Back to Basics Part 01,01,1,0,0,0,0,Re-establishing core foundations in Python Skills.,2026-07-19,2026-07-19
