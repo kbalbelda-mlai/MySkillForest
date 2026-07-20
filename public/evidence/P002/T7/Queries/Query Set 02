@@ -1,0 +1,73 @@
+-- Data Cleaning
+
+SELECT * FROM Retail_Sales
+
+-- Importing the Data -> Underneath Schema -> Table -> Right click table and import CSV file
+
+LIMIT 10 -- shows the first 10 rows
+
+-- Validate how many rows exist
+SELECT
+    COUNT(*) FROM Retail_Sales
+
+-- Identify fields with null values
+
+SELECT * FROM Retail_Sales
+WHERE transactions_id IS NULL
+
+-- The header name can be edited to act as a "sorting" mechanism
+
+SELECT * FROM Retail_Sales
+WHERE age IS NULL
+
+-- For one code for all
+
+SELECT * FROM Retail_Sales
+WHERE
+    transactions_id IS NULL
+    OR
+    sale_date IS NULL
+    OR
+    sale_time IS NULL
+    OR
+    customer_id IS NULL
+    OR
+    gender IS NULL
+    OR
+    age IS NULL
+    OR
+    category IS NULL
+    OR
+    quantiy IS NULL
+    OR
+    price_per_unit IS NULL
+    OR
+    cogs IS NULL
+    OR
+    total_sale IS NULL;
+
+-- Deleting Rows (especially for nulls)
+
+DELETE FROM Retail_Sales
+WHERE
+    transactions_id IS NULL
+    OR
+    sale_date IS NULL
+    OR
+    sale_time IS NULL
+    OR
+    customer_id IS NULL
+    OR
+    gender IS NULL
+    OR
+    age IS NULL
+    OR
+    category IS NULL
+    OR
+    quantiy IS NULL
+    OR
+    price_per_unit IS NULL
+    OR
+    cogs IS NULL
+    OR
+    total_sale IS NULL;

@@ -1,0 +1,12 @@
+-- Data Exploration
+
+-- How many sales do we have?
+SELECT COUNT(*) AS total_sale FROM Retail_sales;
+
+-- How many unique customers do we have?
+SELECT COUNT(DISTINCT customer_id) AS total_sale FROM Retail_sales;
+
+-- How many categories do we have?
+SELECT DISTINCT category FROM Retail_Sales
+-- Note: Returns the full list of 'Distinct' categories present
+

@@ -1,0 +1,29 @@
+-- SQL Retail Sales Analysis Project
+
+-- SQL Project Day 01
+
+CREATE DATABASE SQL_Project_Day01;
+
+-- Notes:
+-- When creating the database, ensure that this is run by itself or else it would lead to a code error.
+
+-- Creating a Table
+
+DROP TABLE IF EXISTS Retail_Sales; -- Initializes the table in case one already exists prior.
+
+CREATE TABLE Retail_Sales
+    (
+        -- Taking from the File data.csv, importing the columns
+        -- Dont't forget to set the data types
+        transactions_id INT PRIMARY KEY, -- Set to not duplicate values
+        sale_date DATE,
+        sale_time TIME,
+        customer_id	INT,
+        gender VARCHAR(15), -- Varchar is for string where inside the parenthesis is the number of characters
+        age INT,
+        category VARCHAR(15),
+        quantiy INT,
+        price_per_unit FLOAT,
+        cogs FLOAT,
+        total_sale FLOAT
+    );
